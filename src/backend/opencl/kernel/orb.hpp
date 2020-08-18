@@ -210,8 +210,7 @@ void orb(unsigned* out_feat, Param& x_out, Param& y_out, Param& score_out,
 
         unsigned usable_feat  = 0;
         Buffer* d_usable_feat = bufferAlloc(sizeof(unsigned));
-        getQueue().enqueueWriteBuffer(*d_usable_feat, CL_FALSE, 0,
-                                      sizeof(unsigned), &usable_feat);
+		getQueue().enqueueFillBuffer<unsigned>(*d_usable_feat, usable_feat, 0, sizeof(unsigned));
 
         Buffer* d_x_harris     = bufferAlloc(lvl_feat * sizeof(float));
         Buffer* d_y_harris     = bufferAlloc(lvl_feat * sizeof(float));

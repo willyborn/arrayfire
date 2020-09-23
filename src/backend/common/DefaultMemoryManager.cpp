@@ -138,7 +138,7 @@ float DefaultMemoryManager::getMemoryPressure() {
 bool DefaultMemoryManager::jitTreeExceedsMemoryPressure(size_t bytes) {
     lock_guard_t lock(this->memory_mutex);
     memory_info &current = this->getCurrentMemoryInfo();
-	return 2 * bytes + current.lock_bytes > current.max_bytes;
+	return 3 * bytes + current.lock_bytes > current.max_bytes;
 }
 
 void *DefaultMemoryManager::alloc(bool user_lock, const unsigned ndims,

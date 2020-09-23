@@ -138,7 +138,7 @@ float DefaultMemoryManager::getMemoryPressure() {
 bool DefaultMemoryManager::jitTreeExceedsMemoryPressure(size_t bytes) {
     lock_guard_t lock(this->memory_mutex);
     memory_info &current = this->getCurrentMemoryInfo();
-    return 2 * bytes > current.lock_bytes;
+	return 2 * bytes + current.lock_bytes > current.max_bytes;
 }
 
 void *DefaultMemoryManager::alloc(bool user_lock, const unsigned ndims,
@@ -177,7 +177,7 @@ void *DefaultMemoryManager::alloc(bool user_lock, const unsigned ndims,
                 current.lock_bytes += alloc_bytes;
                 current.lock_buffers++;
             }
-        }
+		}
 
         // Only comes here if buffer size not found or in debug mode
         if (ptr == nullptr) {

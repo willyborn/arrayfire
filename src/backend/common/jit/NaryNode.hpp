@@ -119,7 +119,8 @@ common::Node_ptr createNaryNode(
         }
         case kJITHeuristics::MemoryPressure: {
             for (auto &c : children) { c->eval(); }  // TODO: use evalMultiple()
-            return ptr;
+			return createNaryNode<Ti, N>(odims, createNode, move(children));
+			//return ptr;
         }
     }
     return ptr;

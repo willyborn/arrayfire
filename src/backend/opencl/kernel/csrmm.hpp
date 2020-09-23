@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/reduce.hpp>
@@ -35,7 +36,8 @@ void csrmm_nt(Param out, const Param &values, const Param &rowIdx,
     // FIXME: Figure out why
     constexpr bool use_greedy = false;
 
-    static const std::string src(csrmm_cl, csrmm_cl_len);
+	static const std::vector<std::string> sources{ {csrmm_cl, csrmm_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const bool use_alpha = (alpha != scalar<T>(1.0));
     const bool use_beta  = (beta != scalar<T>(0.0));
@@ -57,7 +59,7 @@ void csrmm_nt(Param out, const Param &values, const Param &rowIdx,
     options.emplace_back(getTypeBuildDefinition<T>());
 
     // FIXME: Switch to perf (thread vs block) baesd kernel
-    auto csrmm_nt_func = common::getKernel("csrmm_nt", {src}, targs, options);
+    auto csrmm_nt_func = common::getKernel("csrmm_nt", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_PER_GROUP, 1);
     int M = rowIdx.info.dims[0] - 1;

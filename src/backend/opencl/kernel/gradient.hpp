@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/gradient.hpp>
@@ -29,7 +30,8 @@ void gradient(Param grad0, Param grad1, const Param in) {
     constexpr int TX = 32;
     constexpr int TY = 8;
 
-    static const std::string src(gradient_cl, gradient_cl_len);
+	static const std::vector<std::string> sources{ {gradient_cl, gradient_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -43,7 +45,7 @@ void gradient(Param grad0, Param grad1, const Param in) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto gradOp = common::getKernel("gradient", {src}, targs, options);
+    auto gradOp = common::getKernel("gradient", sources, targs, options, hashSources);
 
     cl::NDRange local(TX, TY, 1);
 

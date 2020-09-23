@@ -13,6 +13,7 @@
 #include <common/dispatch.hpp>
 #include <common/half.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/lookup.hpp>
 #include <traits.hpp>
@@ -29,7 +30,8 @@ void lookup(Param out, const Param in, const Param indices,
     constexpr int THREADS_X = 32;
     constexpr int THREADS_Y = 8;
 
-    static const std::string src(lookup_cl, lookup_cl_len);
+	static const std::vector<std::string> sources{ {lookup_cl, lookup_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<in_t>(),
@@ -51,7 +53,7 @@ void lookup(Param out, const Param in, const Param indices,
     cl::NDRange global(blk_x * out.info.dims[2] * THREADS_X,
                        blk_y * out.info.dims[3] * THREADS_Y);
 
-    auto arrIdxOp = common::getKernel("lookupND", {src}, targs, options);
+    auto arrIdxOp = common::getKernel("lookupND", sources, targs, options, hashSources);
 
     arrIdxOp(cl::EnqueueArgs(getQueue(), global, local), *out.data, out.info,
              *in.data, in.info, *indices.data, indices.info, blk_x, blk_y);

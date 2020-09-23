@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/medfilt1.hpp>
 #include <kernel_headers/medfilt2.hpp>
@@ -32,7 +33,8 @@ constexpr int THREADS_Y = 16;
 template<typename T>
 void medfilt1(Param out, const Param in, const unsigned w_wid,
               const af_border_type pad) {
-    static const std::string src(medfilt1_cl, medfilt1_cl_len);
+	static const std::vector<std::string> sources{ {medfilt1_cl, medfilt1_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const int ARR_SIZE = (w_wid - w_wid / 2) + 1;
     size_t loc_size    = (THREADS_X + w_wid - 1) * sizeof(T);
@@ -51,7 +53,7 @@ void medfilt1(Param out, const Param in, const unsigned w_wid,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto medfiltOp = common::getKernel("medfilt1", {src}, targs, options);
+    auto medfiltOp = common::getKernel("medfilt1", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_X, 1, 1);
 
@@ -68,7 +70,8 @@ void medfilt1(Param out, const Param in, const unsigned w_wid,
 template<typename T>
 void medfilt2(Param out, const Param in, const af_border_type pad,
               const unsigned w_len, const unsigned w_wid) {
-    static const std::string src(medfilt2_cl, medfilt2_cl_len);
+	static const std::vector<std::string> sources{ {medfilt2_cl, medfilt2_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const int ARR_SIZE = w_len * (w_wid - w_wid / 2);
     const size_t loc_size =
@@ -91,7 +94,7 @@ void medfilt2(Param out, const Param in, const af_border_type pad,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto medfiltOp = common::getKernel("medfilt2", {src}, targs, options);
+    auto medfiltOp = common::getKernel("medfilt2", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

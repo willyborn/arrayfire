@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/convolve_separable.hpp>
 #include <kernel/fast.hpp>
@@ -77,7 +78,8 @@ void gaussian1D(T* out, const int dim, double sigma = 0.0) {
 
 template<typename T>
 std::array<Kernel, 4> getOrbKernels() {
-    static const std::string src(orb_cl, orb_cl_len);
+	static const std::vector<std::string> sources{ {orb_cl, orb_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -89,10 +91,10 @@ std::array<Kernel, 4> getOrbKernels() {
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     return {
-        common::getKernel("harris_response", {src}, targs, compileOpts),
-        common::getKernel("keep_features", {src}, targs, compileOpts),
-        common::getKernel("centroid_angle", {src}, targs, compileOpts),
-        common::getKernel("extract_orb", {src}, targs, compileOpts),
+        common::getKernel("harris_response", sources, targs, compileOpts, hashSources),
+        common::getKernel("keep_features", sources, targs, compileOpts, hashSources),
+        common::getKernel("centroid_angle", sources, targs, compileOpts, hashSources),
+        common::getKernel("extract_orb", sources, targs, compileOpts, hashSources),
     };
 }
 

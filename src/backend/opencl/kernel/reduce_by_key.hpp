@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/names.hpp>
@@ -45,9 +46,10 @@ void reduceBlocksByKeyDim(cl::Buffer *reduced_block_sizes, Param keys_out,
                           int change_nan, double nanval, const int n,
                           const uint threads_x, const int dim,
                           std::vector<int> dim_ordering) {
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(reduce_blocks_by_key_dim_cl,
-                                  reduce_blocks_by_key_dim_cl_len);
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+												   {reduce_blocks_by_key_dim_cl,
+													 reduce_blocks_by_key_dim_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<To> toNumStr;
     std::vector<TemplateArg> tmpltArgs = {
@@ -68,7 +70,7 @@ void reduceBlocksByKeyDim(cl::Buffer *reduced_block_sizes, Param keys_out,
     compileOpts.emplace_back(getTypeBuildDefinition<Ti>());
 
     auto reduceBlocksByKeyDim = common::getKernel(
-        "reduce_blocks_by_key_dim", {src1, src2}, tmpltArgs, compileOpts);
+        "reduce_blocks_by_key_dim", sources, tmpltArgs, compileOpts, hashSources);
     int numBlocks = divup(n, threads_x);
 
     cl::NDRange local(threads_x);
@@ -91,9 +93,10 @@ void reduceBlocksByKey(cl::Buffer *reduced_block_sizes, Param keys_out,
                        Param vals_out, const Param keys, const Param vals,
                        int change_nan, double nanval, const int n,
                        const uint threads_x) {
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(reduce_blocks_by_key_first_cl,
-                                  reduce_blocks_by_key_first_cl_len);
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+								{reduce_blocks_by_key_first_cl,
+								  reduce_blocks_by_key_first_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<To> toNumStr;
     std::vector<TemplateArg> tmpltArgs = {
@@ -113,7 +116,7 @@ void reduceBlocksByKey(cl::Buffer *reduced_block_sizes, Param keys_out,
     compileOpts.emplace_back(getTypeBuildDefinition<Ti>());
 
     auto reduceBlocksByKeyFirst = common::getKernel(
-        "reduce_blocks_by_key_first", {src1, src2}, tmpltArgs, compileOpts);
+        "reduce_blocks_by_key_first", sources, tmpltArgs, compileOpts, hashSources);
     int numBlocks = divup(n, threads_x);
 
     cl::NDRange local(threads_x);
@@ -130,11 +133,12 @@ void reduceBlocksByKey(cl::Buffer *reduced_block_sizes, Param keys_out,
 
 template<typename Tk, typename To, af_op_t op>
 void finalBoundaryReduce(cl::Buffer *reduced_block_sizes, Param keys_out,
-                         Param vals_out, const int n, const int numBlocks,
-                         const int threads_x) {
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(reduce_by_key_boundary_cl,
-                                  reduce_by_key_boundary_cl_len);
+	Param vals_out, const int n, const int numBlocks,
+	const int threads_x) {
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+								{reduce_by_key_boundary_cl,
+								 reduce_by_key_boundary_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<To> toNumStr;
     std::vector<TemplateArg> tmpltArgs = {
@@ -156,7 +160,7 @@ void finalBoundaryReduce(cl::Buffer *reduced_block_sizes, Param keys_out,
     compileOpts.emplace_back(getTypeBuildDefinition<To>());
 
     auto finalBoundaryReduce = common::getKernel(
-        "final_boundary_reduce", {src1, src2}, tmpltArgs, compileOpts);
+        "final_boundary_reduce", sources, tmpltArgs, compileOpts, hashSources);
 
     cl::NDRange local(threads_x);
     cl::NDRange global(threads_x * numBlocks);
@@ -172,9 +176,10 @@ void finalBoundaryReduceDim(cl::Buffer *reduced_block_sizes, Param keys_out,
                             Param vals_out, const int n, const int numBlocks,
                             const int threads_x, const int dim,
                             std::vector<int> dim_ordering) {
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(reduce_by_key_boundary_dim_cl,
-                                  reduce_by_key_boundary_dim_cl_len);
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+								{reduce_by_key_boundary_dim_cl,
+								  reduce_by_key_boundary_dim_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<To> toNumStr;
     std::vector<TemplateArg> tmpltArgs = {
@@ -197,7 +202,7 @@ void finalBoundaryReduceDim(cl::Buffer *reduced_block_sizes, Param keys_out,
     compileOpts.emplace_back(getTypeBuildDefinition<To>());
 
     auto finalBoundaryReduceDim = common::getKernel(
-        "final_boundary_reduce_dim", {src1, src2}, tmpltArgs, compileOpts);
+        "final_boundary_reduce_dim", sources, tmpltArgs, compileOpts, hashSources);
 
     cl::NDRange local(threads_x);
     cl::NDRange global(threads_x * numBlocks,
@@ -216,9 +221,10 @@ template<typename Tk, typename To>
 void compact(cl::Buffer *reduced_block_sizes, Param keys_out, Param vals_out,
              const Param keys, const Param vals, const int numBlocks,
              const int threads_x) {
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(reduce_by_key_compact_cl,
-                                  reduce_by_key_compact_cl_len);
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+								 {reduce_by_key_compact_cl,
+								  reduce_by_key_compact_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> tmpltArgs = {
         TemplateTypename<To>(),
@@ -235,7 +241,7 @@ void compact(cl::Buffer *reduced_block_sizes, Param keys_out, Param vals_out,
     compileOpts.emplace_back(getTypeBuildDefinition<To>());
 
     auto compact =
-        common::getKernel("compact", {src1, src2}, tmpltArgs, compileOpts);
+        common::getKernel("compact", sources, tmpltArgs, compileOpts, hashSources);
 
     cl::NDRange local(threads_x);
     cl::NDRange global(threads_x * numBlocks, vals_out.info.dims[1],
@@ -253,9 +259,10 @@ void compactDim(cl::Buffer *reduced_block_sizes, Param keys_out, Param vals_out,
                 const Param keys, const Param vals, const int numBlocks,
                 const int threads_x, const int dim,
                 std::vector<int> dim_ordering) {
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(reduce_by_key_compact_dim_cl,
-                                  reduce_by_key_compact_dim_cl_len);
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+								 {reduce_by_key_compact_dim_cl,
+								  reduce_by_key_compact_dim_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> tmpltArgs = {
         TemplateTypename<To>(),
@@ -273,7 +280,7 @@ void compactDim(cl::Buffer *reduced_block_sizes, Param keys_out, Param vals_out,
     compileOpts.emplace_back(getTypeBuildDefinition<To>());
 
     auto compactDim =
-        common::getKernel("compact_dim", {src1, src2}, tmpltArgs, compileOpts);
+        common::getKernel("compact_dim", sources, tmpltArgs, compileOpts, hashSources);
 
     cl::NDRange local(threads_x);
     cl::NDRange global(threads_x * numBlocks,
@@ -292,9 +299,10 @@ template<typename Tk>
 void testNeedsReduction(cl::Buffer needs_reduction, cl::Buffer needs_boundary,
                         const Param keys, const int n, const int numBlocks,
                         const int threads_x) {
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(reduce_by_key_needs_reduction_cl,
-                                  reduce_by_key_needs_reduction_cl_len);
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+								 {reduce_by_key_needs_reduction_cl,
+								  reduce_by_key_needs_reduction_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> tmpltArgs = {
         TemplateTypename<Tk>(),
@@ -306,7 +314,7 @@ void testNeedsReduction(cl::Buffer needs_reduction, cl::Buffer needs_boundary,
     };
 
     auto testIfNeedsReduction = common::getKernel(
-        "test_needs_reduction", {src1, src2}, tmpltArgs, compileOpts);
+        "test_needs_reduction", sources, tmpltArgs, compileOpts, hashSources);
 
     cl::NDRange local(threads_x);
     cl::NDRange global(threads_x * numBlocks);

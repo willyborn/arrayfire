@@ -73,6 +73,7 @@ detail::Kernel getKernel(const std::string& kernelName,
                          const std::vector<std::string>& sources,
                          const std::vector<TemplateArg>& templateArgs,
                          const std::vector<std::string>& options = {},
+						 const std::size_t hashSources			 = 0,
                          const bool sourceIsJIT                  = false);
 
 /// \brief Lookup a Module that matches the given key
@@ -86,7 +87,7 @@ detail::Kernel getKernel(const std::string& kernelName,
 ///            the module look up has to be done
 /// \param[in] key is hash generated from code + options + kernel_name
 ///            at caller scope
-detail::Module findModule(const int device, const std::string& key);
+detail::Module findModule(const int device, const std::size_t& key);
 
 /// \brief Get Kernel object for given name from given Module
 ///

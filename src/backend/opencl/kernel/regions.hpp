@@ -13,6 +13,7 @@
 #include <common/deprecated.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/regions.hpp>
 #include <math.hpp>
@@ -49,7 +50,8 @@ std::array<Kernel, 3> getRegionsKernels(const bool full_conn,
     constexpr int block_dim = 16;
     constexpr int num_warps = 8;
 
-    static const std::string src(regions_cl, regions_cl_len);
+	static const std::vector<std::string> sources{ {regions_cl, regions_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<T> toNumStr;
     vector<TemplateArg> targs = {
@@ -68,9 +70,9 @@ std::array<Kernel, 3> getRegionsKernels(const bool full_conn,
     options.emplace_back(getTypeBuildDefinition<T>());
 
     return {
-        common::getKernel("initial_label", {src}, targs, options),
-        common::getKernel("final_relabel", {src}, targs, options),
-        common::getKernel("update_equiv", {src}, targs, options),
+        common::getKernel("initial_label", sources, targs, options, hashSources),
+        common::getKernel("final_relabel", sources, targs, options, hashSources),
+        common::getKernel("update_equiv", sources, targs, options, hashSources),
     };
 }
 

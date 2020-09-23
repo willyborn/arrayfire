@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/lu_split.hpp>
 #include <math.hpp>
@@ -30,7 +31,8 @@ void luSplitLauncher(Param lower, Param upper, const Param in, bool same_dims) {
     constexpr unsigned TILEX = 128;
     constexpr unsigned TILEY = 32;
 
-    static const std::string src(lu_split_cl, lu_split_cl_len);
+	static const std::vector<std::string> sources{ {lu_split_cl, lu_split_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -44,7 +46,7 @@ void luSplitLauncher(Param lower, Param upper, const Param in, bool same_dims) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto luSplit = common::getKernel("luSplit", {src}, targs, options);
+    auto luSplit = common::getKernel("luSplit", sources, targs, options, hashSources);
 
     cl::NDRange local(TX, TY);
 

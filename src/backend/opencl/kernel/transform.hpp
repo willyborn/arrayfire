@@ -13,6 +13,7 @@
 #include <common/complex.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/interp.hpp>
@@ -52,8 +53,9 @@ void transform(Param out, const Param in, const Param tf, bool isInverse,
         static_cast<af_dtype>(dtype_traits<T>::af_type) == c32 ||
         static_cast<af_dtype>(dtype_traits<T>::af_type) == c64;
 
-    static const std::string src1(interp_cl, interp_cl_len);
-    static const std::string src2(transform_cl, transform_cl_len);
+	static const std::vector<std::string> sources{ {interp_cl, interp_cl_len},
+												   {transform_cl, transform_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<T>(),
@@ -82,8 +84,8 @@ void transform(Param out, const Param in, const Param tf, bool isInverse,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
     addInterpEnumOptions(compileOpts);
 
-    auto transform = common::getKernel("transformKernel", {src1, src2},
-                                       tmpltArgs, compileOpts);
+    auto transform = common::getKernel("transformKernel", sources,
+                                       tmpltArgs, compileOpts, hashSources);
 
     const int nImg2 = in.info.dims[2];
     const int nImg3 = in.info.dims[3];

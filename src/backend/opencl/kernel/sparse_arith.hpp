@@ -13,6 +13,7 @@
 #include <common/complex.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/sp_sp_arith_csr.hpp>
 #include <kernel_headers/sparse_arith_common.hpp>
@@ -52,6 +53,7 @@ auto fetchKernel(const std::string key, const std::string &additionalSrc,
 
     static const std::string src(sparse_arith_common_cl,
                                  sparse_arith_common_cl_len);
+	static const size_t hashSource = deterministicHash(src);
 
     std::vector<TemplateArg> tmpltArgs = {
         TemplateTypename<T>(),
@@ -65,7 +67,8 @@ auto fetchKernel(const std::string key, const std::string &additionalSrc,
     options.emplace_back(getTypeBuildDefinition<T>());
     options.insert(std::end(options), std::begin(additionalOptions),
                    std::end(additionalOptions));
-    return common::getKernel(key, {src, additionalSrc}, tmpltArgs, options);
+	return common::getKernel(key, {src, additionalSrc}, tmpltArgs, options, 
+		deterministicHash(additionalSrc,hashSource));
 }
 
 template<typename T, af_op_t op>
@@ -144,14 +147,15 @@ static void csrCalcOutNNZ(Param outRowIdx, unsigned &nnzC, const uint M,
     UNUSED(nnzA);
     UNUSED(nnzB);
 
-    static const std::string src(ssarith_calc_out_nnz_cl,
-                                 ssarith_calc_out_nnz_cl_len);
+	static const std::vector<std::string> sources{ {ssarith_calc_out_nnz_cl,
+												    ssarith_calc_out_nnz_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> tmpltArgs = {
         TemplateTypename<uint>(),
     };
 
-    auto calcNNZ = common::getKernel("csr_calc_out_nnz", {src}, tmpltArgs, {});
+    auto calcNNZ = common::getKernel("csr_calc_out_nnz", sources, tmpltArgs, {}, hashSources);
 
     cl::NDRange local(256, 1);
     cl::NDRange global(divup(M, local[0]) * local[0], 1, 1);

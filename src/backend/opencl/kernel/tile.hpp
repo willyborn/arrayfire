@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/tile.hpp>
 #include <traits.hpp>
@@ -33,7 +34,8 @@ void tile(Param out, const Param in) {
     constexpr int TILEX = 512;
     constexpr int TILEY = 32;
 
-    static const string src(tile_cl, tile_cl_len);
+	static const vector<string> sources{ {tile_cl, tile_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -43,7 +45,7 @@ void tile(Param out, const Param in) {
     };
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
-    auto tile = common::getKernel("tile", {src}, targs, compileOpts);
+    auto tile = common::getKernel("tile", sources, targs, compileOpts, hashSources);
 
     NDRange local(TX, TY, 1);
 

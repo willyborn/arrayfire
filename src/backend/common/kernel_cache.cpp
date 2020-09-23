@@ -27,6 +27,7 @@ using detail::Module;
 
 using std::back_inserter;
 using std::shared_timed_mutex;
+using std::mutex;
 using std::string;
 using std::transform;
 using std::unordered_map;
@@ -34,7 +35,7 @@ using std::vector;
 
 namespace common {
 
-using ModuleMap = unordered_map<string, Module>;
+using ModuleMap = unordered_map<size_t, Module>;
 
 shared_timed_mutex& getCacheMutex(const int device) {
     static shared_timed_mutex mutexes[detail::DeviceManager::MAX_DEVICES];
@@ -47,7 +48,7 @@ ModuleMap& getCache(const int device) {
     return caches[device];
 }
 
-Module findModule(const int device, const string& key) {
+Module findModule(const int device, const size_t& key) {
     std::shared_lock<shared_timed_mutex> readLock(getCacheMutex(device));
     auto& cache = getCache(device);
     auto iter   = cache.find(key);
@@ -55,58 +56,65 @@ Module findModule(const int device, const string& key) {
     return Module{};
 }
 
+static unordered_map<size_t, std::mutex*> map;
+static mutex mapMutex;
+class lockConstructModule {
+	// Locks for each individual moduleKey.
+	// The corresponding mutex is created and destroyed when the last instance for that moduleKey is destroyed
+public:
+	lockConstructModule(const size_t moduleKey) : moduleKey(moduleKey){
+		std::unique_lock<mutex> lckMap(mapMutex);
+		auto it = map.find(moduleKey);
+		if (it == map.end()) it = map.emplace(moduleKey, new mutex).first;
+		lckMap.unlock();
+		lckModule = std::unique_lock<std::mutex>(*it->second);
+	};
+	~lockConstructModule() {};
+private:
+	std::unique_lock<mutex> lckModule;
+	size_t moduleKey;
+};
+
 Kernel getKernel(const string& kernelName, const vector<string>& sources,
                  const vector<TemplateArg>& targs,
-                 const vector<string>& options, const bool sourceIsJIT) {
-    vector<string> args;
-    args.reserve(targs.size());
-
-    transform(targs.begin(), targs.end(), back_inserter(args),
-              [](const TemplateArg& arg) -> string { return arg._tparam; });
+                 const vector<string>& options, const size_t hashSources, const bool sourceIsJIT) {
 
     string tInstance = kernelName;
-    if (args.size() > 0) {
-        tInstance = kernelName + "<" + args[0];
-        for (size_t i = 1; i < args.size(); ++i) {
-            tInstance += ("," + args[i]);
-        }
-        tInstance += ">";
-    }
+	auto targsIt = targs.begin();
+	auto targsEnd = targs.end();
+	if (targsIt != targsEnd) {
+		tInstance += '<' + targsIt->_tparam;
+		while (++targsIt != targsEnd) { tInstance += ',' + targsIt->_tparam; }
+		tInstance += '>';
+	}
 
     const bool notJIT = !sourceIsJIT;
-
-    vector<string> hashingVals;
-    hashingVals.reserve(1 + (notJIT * (sources.size() + options.size())));
-    hashingVals.push_back(tInstance);
-    if (notJIT) {
-        // This code path is only used for regular kernel compilation
-        // since, jit funcName(kernelName) is unique to use it's hash
-        // for caching the relevant compiled/linked module
-        hashingVals.insert(hashingVals.end(), sources.begin(), sources.end());
-        hashingVals.insert(hashingVals.end(), options.begin(), options.end());
-    }
-
-    const string moduleKey = std::to_string(deterministicHash(hashingVals));
+	size_t hash = 0;
+	if (notJIT) {
+		hash = hashSources ? hashSources : deterministicHash(sources, hash);
+		hash = deterministicHash(options, hash);
+	};
+    const size_t moduleKey = deterministicHash(tInstance, hash);
     const int device       = detail::getActiveDeviceId();
     Module currModule      = findModule(device, moduleKey);
-
     if (!currModule) {
-        currModule = loadModuleFromDisk(device, moduleKey, sourceIsJIT);
-        if (!currModule) {
-            currModule = compileModule(moduleKey, sources, options, {tInstance},
-                                       sourceIsJIT);
-        }
-
-        std::unique_lock<shared_timed_mutex> writeLock(getCacheMutex(device));
+		// Make sure that not all threads are compiling/loading the same Module
+		lockConstructModule compilerLock(moduleKey);
         auto& cache = getCache(device);
         auto iter   = cache.find(moduleKey);
         if (iter == cache.end()) {
             // If not found, this thread is the first one to compile this
             // kernel. Keep the generated module.
+			currModule = loadModuleFromDisk(device, moduleKey, sourceIsJIT);
+			if (!currModule) {
+				currModule = compileModule(moduleKey, sources, options, { tInstance },
+					sourceIsJIT);
+			}
+			std::unique_lock<shared_timed_mutex> writeLock(getCacheMutex(device));
             Module mod = currModule;
             getCache(device).emplace(moduleKey, mod);
         } else {
-            currModule.unload();  // dump the current threads extra compilation
+			// same module is compiled/loaded by other thread while this thread was blocked by the compilerLock
             currModule = iter->second;
         }
     }

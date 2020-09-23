@@ -13,6 +13,7 @@
 #include <common/dispatch.hpp>
 #include <common/half.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/iota.hpp>
 #include <traits.hpp>
@@ -31,15 +32,16 @@ void iota(Param out, const af::dim4& sdims) {
     constexpr int TILEX   = 512;
     constexpr int TILEY   = 32;
 
-    static const std::string src(iota_cl, iota_cl_len);
+	static const std::vector<std::string> sources{ {iota_cl, iota_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<std::string> options = {
         DefineKeyValue(T, dtype_traits<T>::getName()),
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto iota = common::getKernel("iota_kernel", {src}, {TemplateTypename<T>()},
-                                  options);
+    auto iota = common::getKernel("iota_kernel", sources, {TemplateTypename<T>()},
+                                  options, hashSources);
     cl::NDRange local(IOTA_TX, IOTA_TY, 1);
 
     int blocksPerMatX = divup(out.info.dims[0], TILEX);

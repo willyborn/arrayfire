@@ -143,7 +143,7 @@ cl::Kernel getKernel(const vector<Node *> &output_nodes,
                      const vector<Node_ids> &full_ids, const bool is_linear) {
     const string funcName =
         getFuncName(output_nodes, full_nodes, full_ids, is_linear);
-    const string moduleKey = std::to_string(deterministicHash(funcName));
+    const size_t moduleKey = deterministicHash(funcName);
 
     // A forward lookup in module cache helps avoid recompiling the jit
     // source generated from identical jit-trees. It also enables us
@@ -166,7 +166,7 @@ cl::Kernel getKernel(const vector<Node *> &output_nodes,
 
         saveKernel(funcName, jitKer, ".cl");
 
-        return common::getKernel(funcName, {jit, jitKer}, {}, options, true)
+        return common::getKernel(funcName, {jit, jitKer}, {}, options, 0, true)
             .get();
     }
     return common::getKernel(entry, funcName, true).get();
@@ -203,7 +203,7 @@ void evalNodes(vector<Param> &outputs, const vector<Node *> &output_nodes) {
         is_linear &= node->isLinear(outputs[0].info.dims);
     }
 
-    auto ker =
+	    auto ker =
         getKernel(output_nodes, output_ids, full_nodes, full_ids, is_linear);
 
     uint local_0   = 1;

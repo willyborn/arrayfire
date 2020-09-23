@@ -53,10 +53,10 @@ std::string makeTempFilename();
 /// \param[in] byteSize Size of the data in bytes
 ///
 /// \returns An unsigned integer representing the hash of the data
-std::size_t deterministicHash(const void* data, std::size_t byteSize);
+std::size_t deterministicHash(const void* data, std::size_t byteSize, std::size_t prevHash = 0);
 
 // This is just a wrapper around the above function.
-std::size_t deterministicHash(const std::string& data);
+std::size_t deterministicHash(const std::string& data, std::size_t prevHash = 0);
 
 // This concatenates strings in the vector and computes hash
-std::size_t deterministicHash(const std::vector<std::string>& list);
+std::size_t deterministicHash(const std::vector<std::string>& list, std::size_t prevHash = 0);

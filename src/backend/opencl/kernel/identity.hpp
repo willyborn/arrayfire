@@ -13,6 +13,7 @@
 #include <common/dispatch.hpp>
 #include <common/half.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/identity.hpp>
@@ -27,7 +28,8 @@ namespace kernel {
 
 template<typename T>
 static void identity(Param out) {
-    static const std::string src(identity_cl, identity_cl_len);
+	static const std::vector<std::string> sources{ {identity_cl, identity_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -40,7 +42,7 @@ static void identity(Param out) {
     options.emplace_back(getTypeBuildDefinition<T>());
 
     auto identityOp =
-        common::getKernel("identity_kernel", {src}, targs, options);
+        common::getKernel("identity_kernel", sources, targs, options, hashSources);
 
     cl::NDRange local(32, 8);
     int groups_x = divup(out.info.dims[0], local[0]);

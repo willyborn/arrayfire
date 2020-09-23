@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/diff.hpp>
 #include <traits.hpp>
@@ -28,7 +29,8 @@ void diff(Param out, const Param in, const unsigned indims, const unsigned dim,
     constexpr int TX = 16;
     constexpr int TY = 16;
 
-    static const std::string src(diff_cl, diff_cl_len);
+	static const std::vector<std::string> sources{ {diff_cl, diff_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -42,7 +44,7 @@ void diff(Param out, const Param in, const unsigned indims, const unsigned dim,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto diffOp = common::getKernel("diff_kernel", {src}, targs, options);
+    auto diffOp = common::getKernel("diff_kernel", sources, targs, options, hashSources);
 
     cl::NDRange local(TX, TY, 1);
     if (dim == 0 && indims == 1) { local = cl::NDRange(TX * TY, 1, 1); }

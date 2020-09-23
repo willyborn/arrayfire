@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/histogram.hpp>
 #include <traits.hpp>
@@ -29,7 +30,8 @@ void histogram(Param out, const Param in, int nbins, float minval, float maxval,
     constexpr int THREADS_X = 256;
     constexpr int THRD_LOAD = 16;
 
-    static const std::string src(histogram_cl, histogram_cl_len);
+	static const std::vector<std::string> sources{ {histogram_cl, histogram_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -43,7 +45,7 @@ void histogram(Param out, const Param in, int nbins, float minval, float maxval,
     options.emplace_back(getTypeBuildDefinition<T>());
     if (isLinear) { options.emplace_back(DefineKey(IS_LINEAR)); }
 
-    auto histogram = common::getKernel("histogram", {src}, targs, options);
+    auto histogram = common::getKernel("histogram", sources, targs, options, hashSources);
 
     int nElems  = in.info.dims[0] * in.info.dims[1];
     int blk_x   = divup(nElems, THRD_LOAD * THREADS_X);

@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/names.hpp>
@@ -34,7 +35,8 @@ static void get_out_idx(cl::Buffer *out_data, Param &otmp, Param &rtmp,
     using std::string;
     using std::vector;
 
-    static const string src(where_cl, where_cl_len);
+	static const vector<string> sources{ {where_cl, where_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<T> toNumStr;
     vector<TemplateArg> tmpltArgs = {
@@ -48,7 +50,7 @@ static void get_out_idx(cl::Buffer *out_data, Param &otmp, Param &rtmp,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto getIdx =
-        common::getKernel("get_out_idx", {src}, tmpltArgs, compileOpts);
+        common::getKernel("get_out_idx", sources, tmpltArgs, compileOpts, hashSources);
 
     NDRange local(threads_x, THREADS_PER_GROUP / threads_x);
     NDRange global(local[0] * groups_x * in.info.dims[2],

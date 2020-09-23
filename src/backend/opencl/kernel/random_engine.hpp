@@ -39,8 +39,7 @@ static Kernel getRandomEngineKernel(const af_random_engine_type type,
                                     const int kerIdx,
                                     const uint elementsPerBlock) {
     std::string key;
-    std::vector<std::string> sources = {
-        std::string(random_engine_write_cl, random_engine_write_cl_len)};
+	std::vector<std::string> sources = { {random_engine_write_cl, random_engine_write_cl_len} };
     switch (type) {
         case AF_RANDOM_ENGINE_PHILOX_4X32_10:
             key = "philoxGenerator";

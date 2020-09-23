@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/bilateral.hpp>
 #include <traits.hpp>
@@ -32,7 +33,8 @@ void bilateral(Param out, const Param in, const float s_sigma,
     constexpr bool UseNativeExp = !std::is_same<inType, double>::value ||
                                   std::is_same<inType, cdouble>::value;
 
-    static const std::string src(bilateral_cl, bilateral_cl_len);
+	static const std::vector<std::string> sources{ {bilateral_cl, bilateral_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<inType>(),
@@ -45,7 +47,7 @@ void bilateral(Param out, const Param in, const float s_sigma,
     if (UseNativeExp) { options.emplace_back(DefineKey(USE_NATIVE_EXP)); }
     options.emplace_back(getTypeBuildDefinition<inType>());
 
-    auto bilateralOp = common::getKernel("bilateral", {src}, targs, options);
+    auto bilateralOp = common::getKernel("bilateral", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

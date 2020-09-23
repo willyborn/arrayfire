@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/unwrap.hpp>
@@ -34,7 +35,8 @@ void unwrap(Param out, const Param in, const dim_t wx, const dim_t wy,
     using std::string;
     using std::vector;
 
-    static const string src(unwrap_cl, unwrap_cl_len);
+	static const vector<string> sources{ {unwrap_cl, unwrap_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<T> toNumStr;
     vector<TemplateArg> tmpltArgs = {
@@ -48,7 +50,7 @@ void unwrap(Param out, const Param in, const dim_t wx, const dim_t wy,
     };
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
-    auto unwrap = common::getKernel("unwrap", {src}, tmpltArgs, compileOpts);
+    auto unwrap = common::getKernel("unwrap", sources, tmpltArgs, compileOpts, hashSources);
 
     dim_t TX = 1, TY = 1;
     dim_t BX       = 1;

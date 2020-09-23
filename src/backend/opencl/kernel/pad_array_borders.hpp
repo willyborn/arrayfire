@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/pad_array_borders.hpp>
 #include <traits.hpp>
@@ -32,7 +33,8 @@ void padBorders(Param out, const Param in, dim4 const& lBPadding,
     using std::string;
     using std::vector;
 
-    static const string src(pad_array_borders_cl, pad_array_borders_cl_len);
+	static const vector<string> sources{ {pad_array_borders_cl, pad_array_borders_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<T>(),
@@ -47,7 +49,7 @@ void padBorders(Param out, const Param in, dim4 const& lBPadding,
     };
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
-    auto pad = common::getKernel("padBorders", {src}, tmpltArgs, compileOpts);
+    auto pad = common::getKernel("padBorders", sources, tmpltArgs, compileOpts, hashSources);
 
     NDRange local(PADB_THREADS_X, PADB_THREADS_Y);
 

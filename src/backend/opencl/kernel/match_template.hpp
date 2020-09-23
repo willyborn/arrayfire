@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/matchTemplate.hpp>
 #include <traits.hpp>
@@ -28,7 +29,8 @@ void matchTemplate(Param out, const Param srch, const Param tmplt,
     constexpr int THREADS_X = 16;
     constexpr int THREADS_Y = 16;
 
-    static const std::string src(matchTemplate_cl, matchTemplate_cl_len);
+	static const std::vector<std::string> sources{ {matchTemplate_cl, matchTemplate_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<inType>(),
@@ -53,7 +55,7 @@ void matchTemplate(Param out, const Param srch, const Param tmplt,
     };
     options.emplace_back(getTypeBuildDefinition<outType>());
 
-    auto matchImgOp = common::getKernel("matchTemplate", {src}, targs, options);
+    auto matchImgOp = common::getKernel("matchTemplate", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

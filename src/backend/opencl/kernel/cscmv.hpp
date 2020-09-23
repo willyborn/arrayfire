@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/reduce.hpp>
@@ -34,7 +35,8 @@ void cscmv(Param out, const Param &values, const Param &colIdx,
     // handle this.
     constexpr int rows_per_group = 64;
 
-    static const std::string src(cscmv_cl, cscmv_cl_len);
+	static const std::vector<std::string> sources{ {cscmv_cl, cscmv_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const bool use_alpha = (alpha != scalar<T>(1.0));
     const bool use_beta  = (beta != scalar<T>(0.0));
@@ -55,7 +57,7 @@ void cscmv(Param out, const Param &values, const Param &colIdx,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto cscmvBlock = common::getKernel("cscmv_block", {src}, targs, options);
+    auto cscmvBlock = common::getKernel("cscmv_block", sources, targs, options, hashSources);
 
     cl::NDRange local(threads);
     int K        = colIdx.info.dims[0] - 1;

@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/index.hpp>
 #include <traits.hpp>
@@ -34,15 +35,16 @@ void index(Param out, const Param in, const IndexKernelParam_t& p,
     constexpr int THREADS_X = 32;
     constexpr int THREADS_Y = 8;
 
-    static const std::string src(index_cl, index_cl_len);
+	static const std::vector<std::string> sources{ {index_cl, index_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<std::string> options = {
         DefineKeyValue(T, dtype_traits<T>::getName()),
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto index = common::getKernel("indexKernel", {src},
-                                   {TemplateTypename<T>()}, options);
+    auto index = common::getKernel("indexKernel", sources,
+                                   {TemplateTypename<T>()}, options, hashSources);
     cl::NDRange local(THREADS_X, THREADS_Y);
 
     int blk_x = divup(out.info.dims[0], THREADS_X);

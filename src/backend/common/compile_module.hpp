@@ -42,7 +42,7 @@ namespace common {
 ///            hand-written kernel
 ///
 /// \returns Backend specific binary module that contains associated kernel
-detail::Module compileModule(const std::string& moduleKey,
+detail::Module compileModule(const std::size_t& moduleKey,
                              const std::vector<std::string>& sources,
                              const std::vector<std::string>& options,
                              const std::vector<std::string>& kInstances,
@@ -58,7 +58,7 @@ detail::Module compileModule(const std::string& moduleKey,
 /// \param[in] device is the device index
 /// \param[in] moduleKey is hash of code+options+instantiations
 detail::Module loadModuleFromDisk(const int device,
-                                  const std::string& moduleKey,
+                                  const std::size_t& moduleKey,
                                   const bool isJIT);
 
 }  // namespace common

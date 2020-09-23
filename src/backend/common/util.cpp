@@ -215,23 +215,23 @@ string makeTempFilename() {
                                               std::to_string(fileCount)));
 }
 
-std::size_t deterministicHash(const void* data, std::size_t byteSize) {
+std::size_t deterministicHash(const void* data, std::size_t byteSize, std::size_t prevHash) {
     // Fowler-Noll-Vo "1a" 32 bit hash
     // https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
     constexpr std::size_t seed  = 0x811C9DC5;
     constexpr std::size_t prime = 0x01000193;
     const auto* byteData        = static_cast<const std::uint8_t*>(data);
-    return std::accumulate(byteData, byteData + byteSize, seed,
+    return std::accumulate(byteData, byteData + byteSize, prevHash ? prevHash : seed,
                            [&](std::size_t hash, std::uint8_t data) {
                                return (hash ^ data) * prime;
                            });
 }
 
-std::size_t deterministicHash(const std::string& data) {
-    return deterministicHash(data.data(), data.size());
+std::size_t deterministicHash(const std::string& data, std::size_t prevHash) {
+    return deterministicHash(data.data(), data.size(), prevHash);
 }
 
-std::size_t deterministicHash(const vector<string>& list) {
-    string accumStr = accumulate(list.begin(), list.end(), string(""));
-    return deterministicHash(accumStr.data(), accumStr.size());
+std::size_t deterministicHash(const vector<string>& list, std::size_t prevHash) {
+	for (auto &str : list) prevHash = deterministicHash(str.data(), str.size(), prevHash);
+	return prevHash;
 }

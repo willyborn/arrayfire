@@ -27,7 +27,6 @@ using detail::Module;
 
 using std::back_inserter;
 using std::shared_timed_mutex;
-using std::mutex;
 using std::string;
 using std::transform;
 using std::unordered_map;
@@ -56,25 +55,6 @@ Module findModule(const int device, const size_t& key) {
     return Module{};
 }
 
-static unordered_map<size_t, std::mutex*> map;
-static mutex mapMutex;
-class lockConstructModule {
-	// Locks for each individual moduleKey.
-	// The corresponding mutex is created and destroyed when the last instance for that moduleKey is destroyed
-public:
-	lockConstructModule(const size_t moduleKey) : moduleKey(moduleKey){
-		std::unique_lock<mutex> lckMap(mapMutex);
-		auto it = map.find(moduleKey);
-		if (it == map.end()) it = map.emplace(moduleKey, new mutex).first;
-		lckMap.unlock();
-		lckModule = std::unique_lock<std::mutex>(*it->second);
-	};
-	~lockConstructModule() {};
-private:
-	std::unique_lock<mutex> lckModule;
-	size_t moduleKey;
-};
-
 Kernel getKernel(const string& kernelName, const vector<string>& sources,
                  const vector<TemplateArg>& targs,
                  const vector<string>& options, const size_t hashSources, const bool sourceIsJIT) {
@@ -96,28 +76,28 @@ Kernel getKernel(const string& kernelName, const vector<string>& sources,
 	};
     const size_t moduleKey = deterministicHash(tInstance, hash);
     const int device       = detail::getActiveDeviceId();
-    Module currModule      = findModule(device, moduleKey);
-    if (!currModule) {
-		// Make sure that not all threads are compiling/loading the same Module
-		lockConstructModule compilerLock(moduleKey);
-        auto& cache = getCache(device);
-        auto iter   = cache.find(moduleKey);
-        if (iter == cache.end()) {
-            // If not found, this thread is the first one to compile this
-            // kernel. Keep the generated module.
-			currModule = loadModuleFromDisk(device, moduleKey, sourceIsJIT);
-			if (!currModule) {
-				currModule = compileModule(moduleKey, sources, options, { tInstance },
-					sourceIsJIT);
-			}
-			std::unique_lock<shared_timed_mutex> writeLock(getCacheMutex(device));
-            Module mod = currModule;
-            getCache(device).emplace(moduleKey, mod);
-        } else {
-			// same module is compiled/loaded by other thread while this thread was blocked by the compilerLock
-            currModule = iter->second;
-        }
-    }
+    Module currModule      = findModule(device, moduleKey); 
+	if (!currModule) {
+		currModule = loadModuleFromDisk(device, moduleKey, sourceIsJIT);
+		if (!currModule) {
+			currModule = compileModule(moduleKey, sources, options, { tInstance },
+				sourceIsJIT);
+		}
+		std::unique_lock<shared_timed_mutex> writeLock(getCacheMutex(device));
+		auto& cache = getCache(device);
+		auto iter = cache.find(moduleKey);
+		if (iter == cache.end()) {
+			// If not found, this thread is the first one to compile this
+			// kernel. Keep the generated module.
+			Module mod = currModule;
+			getCache(device).emplace(moduleKey, mod);
+		}
+		else {
+			currModule.unload();  // dump the current threads extra compilation
+			currModule = iter->second;
+		}
+	}
+
 #if defined(AF_CUDA)
     return getKernel(currModule, tInstance, sourceIsJIT);
 #elif defined(AF_OPENCL)

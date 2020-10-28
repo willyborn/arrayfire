@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/select.hpp>
 #include <math.hpp>
@@ -26,10 +27,14 @@ constexpr uint DIMX  = 32;
 constexpr uint DIMY  = 8;
 constexpr int REPEAT = 64;
 
-static inline auto selectSrc() {
-    static const std::string src(select_cl, select_cl_len);
-    return src;
+static const inline auto selectSrc() {
+	static const std::vector<std::string> sources{ {select_cl, select_cl_len} };
+    return sources;
 };
+static const inline size_t hashSources() {
+	static const size_t hashSources = deterministicHash(selectSrc());
+	return hashSources;
+}
 
 template<typename T>
 void selectLauncher(Param out, Param cond, Param a, Param b, const int ndims,
@@ -45,7 +50,7 @@ void selectLauncher(Param out, Param cond, Param a, Param b, const int ndims,
     options.emplace_back(getTypeBuildDefinition<T>());
 
     auto selectOp =
-        common::getKernel("select_kernel", {selectSrc()}, targs, options);
+        common::getKernel("select_kernel", selectSrc(), targs, options, hashSources());
 
     int threads[] = {DIMX, DIMY};
 
@@ -89,8 +94,8 @@ void select_scalar(Param out, Param cond, Param a, const double b,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto selectOp = common::getKernel("select_scalar_kernel", {selectSrc()},
-                                      targs, options);
+    auto selectOp = common::getKernel("select_scalar_kernel", selectSrc(),
+                                      targs, options, hashSources());
 
     int threads[] = {DIMX, DIMY};
 

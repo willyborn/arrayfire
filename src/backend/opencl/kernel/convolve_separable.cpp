@@ -13,6 +13,7 @@
 #include <common/dispatch.hpp>
 #include <common/err_common.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/names.hpp>
 #include <kernel_headers/ops.hpp>
@@ -39,9 +40,9 @@ void convSep(Param out, const Param signal, const Param filter,
     constexpr bool IsComplex =
         std::is_same<T, cfloat>::value || std::is_same<T, cdouble>::value;
 
-    static const std::string src1(ops_cl, ops_cl_len);
-    static const std::string src2(convolve_separable_cl,
-                                  convolve_separable_cl_len);
+	static const std::vector<std::string> sources{ {ops_cl, ops_cl_len},
+												   {convolve_separable_cl,convolve_separable_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const int fLen       = filter.info.dims[0] * filter.info.dims[1];
     const size_t C0_SIZE = (THREADS_X + 2 * (fLen - 1)) * THREADS_Y;
@@ -68,7 +69,7 @@ void convSep(Param out, const Param signal, const Param filter,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto conv =
-        common::getKernel("convolve", {src1, src2}, tmpltArgs, compileOpts);
+        common::getKernel("convolve", sources, tmpltArgs, compileOpts, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

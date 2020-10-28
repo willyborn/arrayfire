@@ -11,6 +11,7 @@
 
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/ireduce.hpp>
 #include <kernel/reduce.hpp>
@@ -30,7 +31,8 @@ constexpr int HG_THREADS   = 256;
 
 template<typename T>
 std::array<Kernel, 5> getHomographyKernels(const af_homography_type htype) {
-    static const std::string src(homography_cl, homography_cl_len);
+	static const std::vector<std::string> sources{ {homography_cl, homography_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs   = {TemplateTypename<T>(),
                                       TemplateArg(htype)};
@@ -50,11 +52,11 @@ std::array<Kernel, 5> getHomographyKernels(const af_homography_type htype) {
         options.emplace_back(DefineKey(IS_CPU));
     }
     return {
-        common::getKernel("compute_homography", {src}, targs, options),
-        common::getKernel("eval_homography", {src}, targs, options),
-        common::getKernel("compute_median", {src}, targs, options),
-        common::getKernel("find_min_median", {src}, targs, options),
-        common::getKernel("compute_lmeds_inliers", {src}, targs, options),
+        common::getKernel("compute_homography", sources, targs, options, hashSources),
+        common::getKernel("eval_homography", sources, targs, options, hashSources),
+        common::getKernel("compute_median", sources, targs, options, hashSources),
+        common::getKernel("find_min_median", sources, targs, options, hashSources),
+        common::getKernel("compute_lmeds_inliers", sources, targs, options, hashSources),
     };
 }
 

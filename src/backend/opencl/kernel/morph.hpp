@@ -13,6 +13,7 @@
 #include <common/Binary.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/morph.hpp>
 #include <memory.hpp>
@@ -40,7 +41,8 @@ void morph(Param out, const Param in, const Param mask, bool isDilation) {
     const T DefaultVal = isDilation ? common::Binary<T, af_max_t>::init()
                                     : common::Binary<T, af_min_t>::init();
 
-    static const string src(morph_cl, morph_cl_len);
+	static const vector<string> sources{ {morph_cl, morph_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const int windLen  = mask.info.dims[0];
     const int SeLength = (windLen <= 10 ? windLen : 0);
@@ -58,7 +60,7 @@ void morph(Param out, const Param in, const Param mask, bool isDilation) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto morphOp = common::getKernel("morph", {src}, targs, options);
+    auto morphOp = common::getKernel("morph", sources, targs, options, hashSources);
 
     NDRange local(THREADS_X, THREADS_Y);
 
@@ -103,7 +105,8 @@ void morph3d(Param out, const Param in, const Param mask, bool isDilation) {
     const T DefaultVal = isDilation ? common::Binary<T, af_max_t>::init()
                                     : common::Binary<T, af_min_t>::init();
 
-    static const string src(morph_cl, morph_cl_len);
+	static const vector<string> sources{ {morph_cl, morph_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const int SeLength = mask.info.dims[0];
 
@@ -120,7 +123,7 @@ void morph3d(Param out, const Param in, const Param mask, bool isDilation) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto morphOp = common::getKernel("morph3d", {src}, targs, options);
+    auto morphOp = common::getKernel("morph3d", sources, targs, options, hashSources);
 
     NDRange local(CUBE_X, CUBE_Y, CUBE_Z);
 

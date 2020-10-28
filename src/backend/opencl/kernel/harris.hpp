@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/convolve_separable.hpp>
 #include <kernel/gradient.hpp>
@@ -62,7 +63,8 @@ void conv_helper(Array<T> &ixx, Array<T> &ixy, Array<T> &iyy,
 
 template<typename T>
 std::array<Kernel, 4> getHarrisKernels() {
-    static const std::string src(harris_cl, harris_cl_len);
+	static const std::vector<std::string> sources{ {harris_cl, harris_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -73,10 +75,10 @@ std::array<Kernel, 4> getHarrisKernels() {
     options.emplace_back(getTypeBuildDefinition<T>());
 
     return {
-        common::getKernel("second_order_deriv", {src}, targs, options),
-        common::getKernel("keep_corners", {src}, targs, options),
-        common::getKernel("harris_responses", {src}, targs, options),
-        common::getKernel("non_maximal", {src}, targs, options),
+        common::getKernel("second_order_deriv", sources, targs, options, hashSources),
+        common::getKernel("keep_corners", sources, targs, options, hashSources),
+        common::getKernel("harris_responses", sources, targs, options, hashSources),
+        common::getKernel("non_maximal", sources, targs, options, hashSources),
     };
 }
 

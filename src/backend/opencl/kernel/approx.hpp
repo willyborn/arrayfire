@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/interp.hpp>
@@ -26,11 +27,6 @@
 
 namespace opencl {
 namespace kernel {
-
-inline std::string interpSrc() {
-    static const std::string src(interp_cl, interp_cl_len);
-    return src;
-}
 
 template<typename Ty, typename Tp>
 auto genCompileOptions(const int order, const int xdim, const int ydim = -1) {
@@ -69,7 +65,8 @@ void approx1(Param yo, const Param yi, const Param xo, const int xdim,
 
     constexpr int THREADS = 256;
 
-    static const string src(approx1_cl, approx1_cl_len);
+    static const vector<string> sources{ {interp_cl, interp_cl_len}, {approx1_cl, approx1_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<Ty>(),
@@ -79,8 +76,8 @@ void approx1(Param yo, const Param yi, const Param xo, const int xdim,
     };
     auto compileOpts = genCompileOptions<Ty, Tp>(order, xdim);
 
-    auto approx1 = common::getKernel("approx1", {interpSrc(), src}, tmpltArgs,
-                                     compileOpts);
+    auto approx1 = common::getKernel("approx1", sources, tmpltArgs,
+                                     compileOpts, hashSources);
 
     NDRange local(THREADS, 1, 1);
     dim_t blocksPerMat = divup(yo.info.dims[0], local[0]);
@@ -111,7 +108,8 @@ void approx2(Param zo, const Param zi, const Param xo, const int xdim,
     constexpr int TX = 16;
     constexpr int TY = 16;
 
-    static const string src(approx2_cl, approx2_cl_len);
+	static const vector<string> sources{ {interp_cl, interp_cl_len}, {approx2_cl, approx2_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<Ty>(), TemplateTypename<Tp>(), TemplateArg(xdim),
@@ -119,8 +117,8 @@ void approx2(Param zo, const Param zi, const Param xo, const int xdim,
     };
     auto compileOpts = genCompileOptions<Ty, Tp>(order, xdim, ydim);
 
-    auto approx2 = common::getKernel("approx2", {interpSrc(), src}, tmpltArgs,
-                                     compileOpts);
+    auto approx2 = common::getKernel("approx2", sources, tmpltArgs,
+                                     compileOpts, hashSources);
 
     NDRange local(TX, TY, 1);
     dim_t blocksPerMatX = divup(zo.info.dims[0], local[0]);

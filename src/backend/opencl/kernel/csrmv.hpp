@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/reduce.hpp>
@@ -36,7 +37,8 @@ void csrmv(Param out, const Param &values, const Param &rowIdx,
     // FIXME: Find a better number based on average non zeros per row
     constexpr int threads = 64;
 
-    static const std::string src(csrmv_cl, csrmv_cl_len);
+	static const std::vector<std::string> sources{ {csrmv_cl, csrmv_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const bool use_alpha = (alpha != scalar<T>(1.0));
     const bool use_beta  = (beta != scalar<T>(0.0));
@@ -55,8 +57,8 @@ void csrmv(Param out, const Param &values, const Param &rowIdx,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto csrmvThread = common::getKernel("csrmv_thread", {src}, targs, options);
-    auto csrmvBlock  = common::getKernel("csrmv_block", {src}, targs, options);
+    auto csrmvThread = common::getKernel("csrmv_thread", sources, targs, options, hashSources);
+    auto csrmvBlock  = common::getKernel("csrmv_block", sources, targs, options, hashSources);
 
     cl::Buffer *counter = bufferAlloc(sizeof(int));
     getQueue().enqueueFillBuffer<int>(*counter, 0, 0, sizeof(int));

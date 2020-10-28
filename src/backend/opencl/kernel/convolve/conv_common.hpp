@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/names.hpp>
 #include <kernel_headers/convolve.hpp>
@@ -95,8 +96,9 @@ void convNHelper(const conv_kparam_t& param, Param& out, const Param& signal,
     constexpr bool IsComplex =
         std::is_same<T, cfloat>::value || std::is_same<T, cdouble>::value;
 
-    static const string src1(ops_cl, ops_cl_len);
-    static const string src2(convolve_cl, convolve_cl_len);
+	static const vector<string> sources{ {ops_cl, ops_cl_len},
+										 {convolve_cl, convolve_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<T>(),
@@ -117,7 +119,7 @@ void convNHelper(const conv_kparam_t& param, Param& out, const Param& signal,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto convolve =
-        common::getKernel("convolve", {src1, src2}, tmpltArgs, compileOpts);
+        common::getKernel("convolve", sources, tmpltArgs, compileOpts, hashSources);
 
     convolve(EnqueueArgs(getQueue(), param.global, param.local), *out.data,
              out.info, *signal.data, signal.info, cl::Local(param.loc_size),

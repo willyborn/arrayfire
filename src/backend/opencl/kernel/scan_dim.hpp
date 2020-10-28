@@ -13,6 +13,7 @@
 #include <common/Binary.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/names.hpp>
@@ -32,8 +33,9 @@ static opencl::Kernel getScanDimKernel(const std::string key, int dim,
     using std::string;
     using std::vector;
 
-    static const string src1(ops_cl, ops_cl_len);
-    static const string src2(scan_dim_cl, scan_dim_cl_len);
+	static const std::vector<string> sources{ {ops_cl, ops_cl_len},
+											  {scan_dim_cl, scan_dim_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<To> toNumStr;
     vector<TemplateArg> tmpltArgs = {
@@ -60,7 +62,7 @@ static opencl::Kernel getScanDimKernel(const std::string key, int dim,
     };
     compileOpts.emplace_back(getTypeBuildDefinition<Ti>());
 
-    return common::getKernel(key, {src1, src2}, tmpltArgs, compileOpts);
+    return common::getKernel(key, sources, tmpltArgs, compileOpts, hashSources);
 }
 
 template<typename Ti, typename To, af_op_t op>

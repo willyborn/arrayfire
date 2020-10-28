@@ -13,6 +13,7 @@
 #include <common/Binary.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/names.hpp>
@@ -34,8 +35,9 @@ static opencl::Kernel getScanFirstKernel(const std::string key,
     using std::string;
     using std::vector;
 
-    static const string src1(ops_cl, ops_cl_len);
-    static const string src2(scan_first_cl, scan_first_cl_len);
+	static const vector<string> sources{ {ops_cl, ops_cl_len},
+										 {scan_first_cl, scan_first_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     const uint threads_y       = THREADS_PER_GROUP / threads_x;
     const uint SHARED_MEM_SIZE = THREADS_PER_GROUP;
@@ -61,7 +63,7 @@ static opencl::Kernel getScanFirstKernel(const std::string key,
     };
     compileOpts.emplace_back(getTypeBuildDefinition<Ti>());
 
-    return common::getKernel(key, {src1, src2}, tmpltArgs, compileOpts);
+    return common::getKernel(key, sources, tmpltArgs, compileOpts, hashSources);
 }
 
 template<typename Ti, typename To, af_op_t op>

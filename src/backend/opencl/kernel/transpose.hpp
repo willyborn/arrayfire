@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/transpose.hpp>
 #include <traits.hpp>
@@ -34,7 +35,8 @@ void transpose(Param out, const Param in, cl::CommandQueue queue,
     using std::string;
     using std::vector;
 
-    static const string src(transpose_cl, transpose_cl_len);
+	static const vector<string> sources{ {transpose_cl, transpose_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<T>(),
@@ -51,7 +53,7 @@ void transpose(Param out, const Param in, cl::CommandQueue queue,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto transpose =
-        common::getKernel("transpose", {src}, tmpltArgs, compileOpts);
+        common::getKernel("transpose", sources, tmpltArgs, compileOpts, hashSources);
 
     NDRange local(THREADS_X, THREADS_Y);
 

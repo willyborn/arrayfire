@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/iir.hpp>
 #include <traits.hpp>
@@ -28,7 +29,8 @@ void iir(Param y, Param c, Param a) {
     // allocted outside
     constexpr int MAX_A_SIZE = (1024 * sizeof(double)) / sizeof(T);
 
-    static const std::string src(iir_cl, iir_cl_len);
+	static const std::vector<std::string> sources{ {iir_cl, iir_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -42,7 +44,7 @@ void iir(Param y, Param c, Param a) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto iir = common::getKernel("iir_kernel", {src}, targs, options);
+    auto iir = common::getKernel("iir_kernel", sources, targs, options, hashSources);
 
     const int groups_y = y.info.dims[1];
     const int groups_x = y.info.dims[2];

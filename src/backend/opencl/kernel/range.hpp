@@ -13,6 +13,7 @@
 #include <common/dispatch.hpp>
 #include <common/half.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/range.hpp>
 #include <traits.hpp>
@@ -30,7 +31,8 @@ void range(Param out, const int dim) {
     constexpr int RANGE_TILEX = 512;
     constexpr int RANGE_TILEY = 32;
 
-    static const std::string src(range_cl, range_cl_len);
+	static const std::vector<std::string> sources{ {range_cl, range_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs   = {TemplateTypename<T>()};
     std::vector<std::string> options = {
@@ -38,7 +40,7 @@ void range(Param out, const int dim) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto rangeOp = common::getKernel("range_kernel", {src}, targs, options);
+    auto rangeOp = common::getKernel("range_kernel", sources, targs, options, hashSources);
 
     cl::NDRange local(RANGE_TX, RANGE_TY, 1);
 

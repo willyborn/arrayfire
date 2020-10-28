@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/sobel.hpp>
 #include <traits.hpp>
@@ -26,7 +27,8 @@ void sobel(Param dx, Param dy, const Param in) {
     constexpr int THREADS_X = 16;
     constexpr int THREADS_Y = 16;
 
-    static const std::string src(sobel_cl, sobel_cl_len);
+	static const std::vector<std::string> sources{ {sobel_cl, sobel_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<Ti>(),
@@ -40,7 +42,7 @@ void sobel(Param dx, Param dy, const Param in) {
     };
     compileOpts.emplace_back(getTypeBuildDefinition<Ti>());
 
-    auto sobel = common::getKernel("sobel3x3", {src}, targs, compileOpts);
+    auto sobel = common::getKernel("sobel3x3", sources, targs, compileOpts, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

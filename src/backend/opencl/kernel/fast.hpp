@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/fast.hpp>
 #include <memory.hpp>
@@ -33,7 +34,8 @@ void fast(const unsigned arc_length, unsigned *out_feat, Param &x_out,
     constexpr int FAST_THREADS_NONMAX_X = 32;
     constexpr int FAST_THREADS_NONMAX_Y = 8;
 
-    static const std::string src(fast_cl, fast_cl_len);
+	static const std::vector<std::string> sources{ {fast_cl, fast_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -47,9 +49,9 @@ void fast(const unsigned arc_length, unsigned *out_feat, Param &x_out,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto locate  = common::getKernel("locate_features", {src}, targs, options);
-    auto nonMax  = common::getKernel("non_max_counts", {src}, targs, options);
-    auto getFeat = common::getKernel("get_features", {src}, targs, options);
+    auto locate  = common::getKernel("locate_features", sources, targs, options, hashSources);
+    auto nonMax  = common::getKernel("non_max_counts", sources, targs, options, hashSources);
+    auto getFeat = common::getKernel("get_features", sources, targs, options, hashSources);
 
     const unsigned max_feat =
         ceil(in.info.dims[0] * in.info.dims[1] * feature_ratio);

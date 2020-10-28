@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/susan.hpp>
@@ -27,9 +28,13 @@ namespace kernel {
 constexpr unsigned SUSAN_THREADS_X = 16;
 constexpr unsigned SUSAN_THREADS_Y = 16;
 
-static inline std::string susanSrc() {
-    static const std::string src(susan_cl, susan_cl_len);
-    return src;
+static inline auto susanSrc() {
+	static const std::vector<std::string> sources{ {susan_cl, susan_cl_len} };
+    return sources;
+}
+static inline auto hashSources() {
+	static const size_t hashSources = deterministicHash(susanSrc());
+	return hashSources;
 }
 
 template<typename T>
@@ -54,7 +59,7 @@ void susan(cl::Buffer* out, const cl::Buffer* in, const unsigned in_off,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto susan =
-        common::getKernel("susan_responses", {susanSrc()}, targs, compileOpts);
+        common::getKernel("susan_responses", susanSrc(), targs, compileOpts, hashSources());
 
     cl::NDRange local(SUSAN_THREADS_X, SUSAN_THREADS_Y);
     cl::NDRange global(divup(idim0 - 2 * edge, local[0]) * local[0],
@@ -80,7 +85,7 @@ unsigned nonMaximal(cl::Buffer* x_out, cl::Buffer* y_out, cl::Buffer* resp_out,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto nonMax =
-        common::getKernel("non_maximal", {susanSrc()}, targs, compileOpts);
+        common::getKernel("non_maximal", susanSrc(), targs, compileOpts, hashSources());
 
     unsigned corners_found = 0;
     auto d_corners_found   = memAlloc<unsigned>(1);

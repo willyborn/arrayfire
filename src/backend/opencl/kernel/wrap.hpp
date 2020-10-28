@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/wrap.hpp>
@@ -34,7 +35,8 @@ void wrap(Param out, const Param in, const dim_t wx, const dim_t wy,
     using std::string;
     using std::vector;
 
-    static const string src(wrap_cl, wrap_cl_len);
+	static const vector<string> sources{ {wrap_cl, wrap_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<T> toNumStr;
     vector<TemplateArg> tmpltArgs = {
@@ -48,7 +50,7 @@ void wrap(Param out, const Param in, const dim_t wx, const dim_t wy,
     };
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
-    auto wrap = common::getKernel("wrap", {src}, tmpltArgs, compileOpts);
+    auto wrap = common::getKernel("wrap", sources, tmpltArgs, compileOpts, hashSources);
 
     dim_t nx = (out.info.dims[0] + 2 * px - wx) / sx + 1;
     dim_t ny = (out.info.dims[1] + 2 * py - wy) / sy + 1;
@@ -80,7 +82,8 @@ void wrap_dilated(Param out, const Param in, const dim_t wx, const dim_t wy,
     using std::string;
     using std::vector;
 
-    static const string src(wrap_dilated_cl, wrap_dilated_cl_len);
+	static const vector<string> sources{ {wrap_dilated_cl, wrap_dilated_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<T> toNumStr;
     vector<TemplateArg> tmpltArgs = {
@@ -95,7 +98,7 @@ void wrap_dilated(Param out, const Param in, const dim_t wx, const dim_t wy,
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto dilatedWrap =
-        common::getKernel("wrap_dilated", {src}, tmpltArgs, compileOpts);
+        common::getKernel("wrap_dilated", sources, tmpltArgs, compileOpts, hashSources);
 
     dim_t nx = 1 + (out.info.dims[0] + 2 * px - (((wx - 1) * dx) + 1)) / sx;
     dim_t ny = 1 + (out.info.dims[1] + 2 * py - (((wy - 1) * dy) + 1)) / sy;

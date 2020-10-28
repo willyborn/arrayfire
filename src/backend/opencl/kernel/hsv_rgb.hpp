@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/hsv_rgb.hpp>
 #include <traits.hpp>
@@ -27,7 +28,8 @@ void hsv2rgb_convert(Param out, const Param in, bool isHSV2RGB) {
     constexpr int THREADS_X = 16;
     constexpr int THREADS_Y = 16;
 
-    static const std::string src(hsv_rgb_cl, hsv_rgb_cl_len);
+	static const std::vector<std::string> sources{ {hsv_rgb_cl, hsv_rgb_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -39,7 +41,7 @@ void hsv2rgb_convert(Param out, const Param in, bool isHSV2RGB) {
     options.emplace_back(getTypeBuildDefinition<T>());
     if (isHSV2RGB) { options.emplace_back(DefineKey(isHSV2RGB)); }
 
-    auto convert = common::getKernel("hsvrgbConvert", {src}, targs, options);
+    auto convert = common::getKernel("hsvrgbConvert", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

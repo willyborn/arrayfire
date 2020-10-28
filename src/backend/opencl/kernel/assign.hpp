@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/assign.hpp>
 #include <traits.hpp>
@@ -34,7 +35,8 @@ void assign(Param out, const Param in, const AssignKernelParam_t& p,
     constexpr int THREADS_X = 32;
     constexpr int THREADS_Y = 8;
 
-    static const std::string src(assign_cl, assign_cl_len);
+	static const std::vector<std::string> sources{ {assign_cl, assign_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -44,7 +46,7 @@ void assign(Param out, const Param in, const AssignKernelParam_t& p,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto assign = common::getKernel("assignKernel", {src}, targs, options);
+    auto assign = common::getKernel("assignKernel", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

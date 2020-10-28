@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/join.hpp>
 #include <traits.hpp>
@@ -29,7 +30,8 @@ void join(Param out, const Param in, dim_t dim, const af::dim4 offset) {
     constexpr int TILEX = 256;
     constexpr int TILEY = 32;
 
-    static const std::string src(join_cl, join_cl_len);
+	static const std::vector<std::string> sources{ {join_cl, join_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<std::string> options = {
         DefineKeyValue(T, dtype_traits<T>::getName()),
@@ -37,8 +39,8 @@ void join(Param out, const Param in, dim_t dim, const af::dim4 offset) {
     options.emplace_back(getTypeBuildDefinition<T>());
 
     auto join =
-        common::getKernel("join_kernel", {src},
-                          {TemplateTypename<T>(), TemplateArg(dim)}, options);
+        common::getKernel("join_kernel", sources,
+                          {TemplateTypename<T>(), TemplateArg(dim)}, options, hashSources);
     cl::NDRange local(TX, TY, 1);
 
     int blocksPerMatX = divup(in.info.dims[0], TILEX);

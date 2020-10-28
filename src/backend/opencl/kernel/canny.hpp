@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/nonmax_suppression.hpp>
 #include <kernel_headers/trace_edge.hpp>
@@ -34,7 +35,8 @@ void nonMaxSuppression(Param output, const Param magnitude, const Param dx,
     using std::string;
     using std::vector;
 
-    static const string src(nonmax_suppression_cl, nonmax_suppression_cl_len);
+	static const vector <string> sources{ {nonmax_suppression_cl, nonmax_suppression_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
     vector<string> options = {
         DefineKeyValue(T, dtype_traits<T>::getName()),
         DefineKeyValue(SHRD_MEM_HEIGHT, THREADS_X + 2),
@@ -42,8 +44,8 @@ void nonMaxSuppression(Param output, const Param magnitude, const Param dx,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto nonMaxOp = common::getKernel("nonMaxSuppressionKernel", {src},
-                                      {TemplateTypename<T>()}, options);
+    auto nonMaxOp = common::getKernel("nonMaxSuppressionKernel", sources,
+                                      {TemplateTypename<T>()}, options, hashSources);
 
     NDRange threads(kernel::THREADS_X, kernel::THREADS_Y, 1);
 
@@ -68,7 +70,8 @@ void initEdgeOut(Param output, const Param strong, const Param weak) {
     using std::string;
     using std::vector;
 
-    static const string src(trace_edge_cl, trace_edge_cl_len);
+	static const vector<string> sources{ {trace_edge_cl, trace_edge_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<string> options = {
         DefineKeyValue(T, dtype_traits<T>::getName()),
@@ -76,8 +79,8 @@ void initEdgeOut(Param output, const Param strong, const Param weak) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto initOp = common::getKernel("initEdgeOutKernel", {src},
-                                    {TemplateTypename<T>()}, options);
+    auto initOp = common::getKernel("initEdgeOutKernel", sources,
+                                    {TemplateTypename<T>()}, options, hashSources);
 
     NDRange threads(kernel::THREADS_X, kernel::THREADS_Y, 1);
 
@@ -102,7 +105,8 @@ void suppressLeftOver(Param output) {
     using std::string;
     using std::vector;
 
-    static const string src(trace_edge_cl, trace_edge_cl_len);
+	static const vector<string> sources{ {trace_edge_cl, trace_edge_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<string> options = {
         DefineKeyValue(T, dtype_traits<T>::getName()),
@@ -110,8 +114,8 @@ void suppressLeftOver(Param output) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto finalOp = common::getKernel("suppressLeftOverKernel", {src},
-                                     {TemplateTypename<T>()}, options);
+    auto finalOp = common::getKernel("suppressLeftOverKernel", sources,
+                                     {TemplateTypename<T>()}, options, hashSources);
 
     NDRange threads(kernel::THREADS_X, kernel::THREADS_Y, 1);
 
@@ -136,7 +140,8 @@ void edgeTrackingHysteresis(Param output, const Param strong,
     using std::string;
     using std::vector;
 
-    static const string src(trace_edge_cl, trace_edge_cl_len);
+	static const vector<string> sources{ {trace_edge_cl, trace_edge_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<string> options = {
         DefineKeyValue(T, dtype_traits<T>::getName()),
@@ -147,8 +152,8 @@ void edgeTrackingHysteresis(Param output, const Param strong,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto edgeTraceOp = common::getKernel("edgeTrackKernel", {src},
-                                         {TemplateTypename<T>()}, options);
+    auto edgeTraceOp = common::getKernel("edgeTrackKernel", sources,
+                                         {TemplateTypename<T>()}, options, hashSources);
 
     NDRange threads(kernel::THREADS_X, kernel::THREADS_Y);
 

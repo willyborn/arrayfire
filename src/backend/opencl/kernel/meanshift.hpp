@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/meanshift.hpp>
 #include <traits.hpp>
@@ -32,7 +33,8 @@ void meanshift(Param out, const Param in, const float spatialSigma,
     constexpr int THREADS_X = 16;
     constexpr int THREADS_Y = 16;
 
-    static const std::string src(meanshift_cl, meanshift_cl_len);
+	static const std::vector<std::string> sources{ {meanshift_cl, meanshift_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -45,7 +47,7 @@ void meanshift(Param out, const Param in, const float spatialSigma,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto meanshiftOp = common::getKernel("meanshift", {src}, targs, options);
+    auto meanshiftOp = common::getKernel("meanshift", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS_X, THREADS_Y);
 

@@ -13,6 +13,7 @@
 #include <common/complex.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/resize.hpp>
 #include <traits.hpp>
@@ -40,7 +41,8 @@ void resize(Param out, const Param in, const af_interp_type method) {
     constexpr bool IsComplex =
         std::is_same<T, cfloat>::value || std::is_same<T, cdouble>::value;
 
-    static const std::string src(resize_cl, resize_cl_len);
+	static const std::vector<std::string> sources{ {resize_cl, resize_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -70,7 +72,7 @@ void resize(Param out, const Param in, const af_interp_type method) {
         default: break;
     }
 
-    auto resizeOp = common::getKernel("resize_kernel", {src}, targs, options);
+    auto resizeOp = common::getKernel("resize_kernel", sources, targs, options, hashSources);
 
     cl::NDRange local(RESIZE_TX, RESIZE_TY, 1);
 

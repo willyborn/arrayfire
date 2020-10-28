@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/laswp.hpp>
 #include <traits.hpp>
@@ -34,7 +35,8 @@ void laswp(int n, cl_mem in, size_t offset, int ldda, int k1, int k2,
            const int *ipiv, int inci, cl::CommandQueue &queue) {
     constexpr int NTHREADS = 256;
 
-    static const std::string src(laswp_cl, laswp_cl_len);
+	static const std::vector<std::string> sources{ {laswp_cl, laswp_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -45,7 +47,7 @@ void laswp(int n, cl_mem in, size_t offset, int ldda, int k1, int k2,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto laswpOp = common::getKernel("laswp", {src}, targs, options);
+    auto laswpOp = common::getKernel("laswp", sources, targs, options, hashSources);
 
     int groups = divup(n, NTHREADS);
     cl::NDRange local(NTHREADS);

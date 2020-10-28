@@ -13,6 +13,7 @@
 #include <common/complex.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/interp.hpp>
@@ -56,8 +57,9 @@ void rotate(Param out, const Param in, const float theta, af_interp_type method,
         static_cast<af_dtype>(dtype_traits<T>::af_type) == c32 ||
         static_cast<af_dtype>(dtype_traits<T>::af_type) == c64;
 
-    static const std::string src1(interp_cl, interp_cl_len);
-    static const std::string src2(rotate_cl, rotate_cl_len);
+	static const std::vector<std::string> sources{ {interp_cl, interp_cl_len},
+												   {rotate_cl, rotate_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<T>(),
@@ -83,7 +85,7 @@ void rotate(Param out, const Param in, const float theta, af_interp_type method,
     addInterpEnumOptions(compileOpts);
 
     auto rotate =
-        common::getKernel("rotateKernel", {src1, src2}, tmpltArgs, compileOpts);
+        common::getKernel("rotateKernel", sources, tmpltArgs, compileOpts, hashSources);
 
     const float c = cos(-theta), s = sin(-theta);
     float tx, ty;

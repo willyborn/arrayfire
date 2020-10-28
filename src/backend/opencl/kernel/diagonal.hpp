@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/diag_create.hpp>
@@ -27,7 +28,8 @@ namespace kernel {
 
 template<typename T>
 static void diagCreate(Param out, Param in, int num) {
-    static const std::string src(diag_create_cl, diag_create_cl_len);
+    static const std::vector<std::string> sources{ {diag_create_cl, diag_create_cl_len} };
+    static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -39,7 +41,7 @@ static void diagCreate(Param out, Param in, int num) {
     options.emplace_back(getTypeBuildDefinition<T>());
 
     auto diagCreate =
-        common::getKernel("diagCreateKernel", {src}, targs, options);
+        common::getKernel("diagCreateKernel", sources, targs, options, hashSources);
 
     cl::NDRange local(32, 8);
     int groups_x = divup(out.info.dims[0], local[0]);
@@ -54,7 +56,8 @@ static void diagCreate(Param out, Param in, int num) {
 
 template<typename T>
 static void diagExtract(Param out, Param in, int num) {
-    static const std::string src(diag_extract_cl, diag_extract_cl_len);
+	static const std::vector<std::string> sources{ {diag_extract_cl, diag_extract_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -66,7 +69,7 @@ static void diagExtract(Param out, Param in, int num) {
     options.emplace_back(getTypeBuildDefinition<T>());
 
     auto diagExtract =
-        common::getKernel("diagExtractKernel", {src}, targs, options);
+        common::getKernel("diagExtractKernel", sources, targs, options, hashSources);
 
     cl::NDRange local(256, 1);
     int groups_x = divup(out.info.dims[0], local[0]);

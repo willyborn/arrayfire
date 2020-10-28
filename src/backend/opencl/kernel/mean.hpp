@@ -15,6 +15,7 @@
 #include <common/dispatch.hpp>
 #include <common/half.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel/names.hpp>
@@ -93,19 +94,20 @@ struct MeanOp<cdouble, double> {
 
 template<typename Ti, typename Tw, typename To>
 void meanDimLauncher(Param out, Param owt, Param in, Param inWeight,
-                     const int dim, const int threads_y,
-                     const uint groups_all[4]) {
-    using cl::EnqueueArgs;
-    using cl::NDRange;
+	const int dim, const int threads_y,
+	const uint groups_all[4]) {
+	using cl::EnqueueArgs;
+	using cl::NDRange;
 
-    bool input_weight = ((inWeight.info.dims[0] * inWeight.info.dims[1] *
-                          inWeight.info.dims[2] * inWeight.info.dims[3]) != 0);
+	bool input_weight = ((inWeight.info.dims[0] * inWeight.info.dims[1] *
+		inWeight.info.dims[2] * inWeight.info.dims[3]) != 0);
 
-    bool output_weight = ((owt.info.dims[0] * owt.info.dims[1] *
-                           owt.info.dims[2] * owt.info.dims[3]) != 0);
+	bool output_weight = ((owt.info.dims[0] * owt.info.dims[1] *
+		owt.info.dims[2] * owt.info.dims[3]) != 0);
 
-    static const std::string src1(mean_ops_cl, mean_ops_cl_len);
-    static const std::string src2(mean_dim_cl, mean_dim_cl_len);
+	static const std::vector<std::string> sources{ {mean_ops_cl, mean_ops_cl_len},
+												   {mean_dim_cl, mean_dim_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<To> toNumStr;
     ToNumStr<Tw> twNumStr;
@@ -132,7 +134,7 @@ void meanDimLauncher(Param out, Param owt, Param in, Param inWeight,
     if (input_weight) { options.emplace_back(DefineKey(INPUT_WEIGHT)); }
     if (output_weight) { options.emplace_back(DefineKey(OUTPUT_WEIGHT)); }
 
-    auto meanOp = common::getKernel("meanDim", {src1, src2}, targs, options);
+    auto meanOp = common::getKernel("meanDim", sources, targs, options, hashSources);
 
     NDRange local(THREADS_X, threads_y);
     NDRange global(groups_all[0] * groups_all[2] * local[0],
@@ -201,8 +203,9 @@ void meanFirstLauncher(Param out, Param owt, Param in, Param inWeight,
     bool output_weight = ((owt.info.dims[0] * owt.info.dims[1] *
                            owt.info.dims[2] * owt.info.dims[3]) != 0);
 
-    static const std::string src1(mean_ops_cl, mean_ops_cl_len);
-    static const std::string src2(mean_first_cl, mean_first_cl_len);
+	static const std::vector<std::string> sources{ {mean_ops_cl, mean_ops_cl_len},
+												   {mean_first_cl, mean_first_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     ToNumStr<To> toNumStr;
     ToNumStr<Tw> twNumStr;
@@ -227,7 +230,7 @@ void meanFirstLauncher(Param out, Param owt, Param in, Param inWeight,
     if (input_weight) { options.emplace_back(DefineKey(INPUT_WEIGHT)); }
     if (output_weight) { options.emplace_back(DefineKey(OUTPUT_WEIGHT)); }
 
-    auto meanOp = common::getKernel("meanFirst", {src1, src2}, targs, options);
+    auto meanOp = common::getKernel("meanFirst", sources, targs, options, hashSources);
 
     NDRange local(threads_x, THREADS_PER_GROUP / threads_x);
     NDRange global(groups_x * in.info.dims[2] * local[0],

@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/moments.hpp>
@@ -28,7 +29,8 @@ template<typename T>
 void moments(Param out, const Param in, af_moment_type moment) {
     constexpr int THREADS = 128;
 
-    static const std::string src(moments_cl, moments_cl_len);
+	static const std::vector<std::string> sources{ {moments_cl, moments_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -40,7 +42,7 @@ void moments(Param out, const Param in, af_moment_type moment) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto momentsOp = common::getKernel("moments", {src}, targs, options);
+    auto momentsOp = common::getKernel("moments", sources, targs, options, hashSources);
 
     cl::NDRange local(THREADS, 1, 1);
     cl::NDRange global(in.info.dims[1] * local[0],

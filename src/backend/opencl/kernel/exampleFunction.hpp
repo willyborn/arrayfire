@@ -25,7 +25,7 @@
 #include <common/dispatch.hpp>      // common utility header for CUDA & OpenCL
 #include <common/kernel_cache.hpp>  // Has getKernel
                                     // backends has the divup macro
-
+#include <common/util.hpp>	// to calculate the cache of hashSources
 #include <debug_opencl.hpp>  // For Debug only related OpenCL validations
 
 // Following c++ standard library headers are needed to create
@@ -41,7 +41,8 @@ constexpr int THREADS_Y = 16;
 
 template<typename T>
 void exampleFunc(Param c, const Param a, const Param b, const af_someenum_t p) {
-    static const std::string src(example_cl, example_cl_len);
+	static const std::vector<std::string> sources{ {example_cl, example_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     // Compilation options for compiling OpenCL kernel.
     // Go to common/kernel_cache.hpp to find details on this.
@@ -63,7 +64,7 @@ void exampleFunc(Param c, const Param a, const Param b, const af_someenum_t p) {
 
     // Fetch the Kernel functor, go to common/kernel_cache.hpp
     // to find details of this function
-    auto exOp = common::getKernel("example", {src}, targs, options);
+    auto exOp = common::getKernel("example", sources, targs, options, hashSources);
 
     // configure work group parameters
     cl::NDRange local(THREADS_X, THREADS_Y);

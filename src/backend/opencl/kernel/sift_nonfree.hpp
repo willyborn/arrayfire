@@ -73,6 +73,7 @@
 #include <common/deprecated.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/convolve_separable.hpp>
 #include <kernel/fast.hpp>
@@ -401,7 +402,8 @@ void apply_permutation(compute::buffer_iterator<T>& keys,
 
 template<typename T>
 std::array<Kernel, 7> getSiftKernels() {
-    static const std::string src(sift_nonfree_cl, sift_nonfree_cl_len);
+	static const std::vector<std::string> sources{ {sift_nonfree_cl, sift_nonfree_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -412,13 +414,13 @@ std::array<Kernel, 7> getSiftKernels() {
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     return {
-        common::getKernel("sub", {src}, targs, compileOpts),
-        common::getKernel("detectExtrema", {src}, targs, compileOpts),
-        common::getKernel("interpolateExtrema", {src}, targs, compileOpts),
-        common::getKernel("calcOrientation", {src}, targs, compileOpts),
-        common::getKernel("removeDuplicates", {src}, targs, compileOpts),
-        common::getKernel("computeDescriptor", {src}, targs, compileOpts),
-        common::getKernel("computeGLOHDescriptor", {src}, targs, compileOpts),
+        common::getKernel("sub", sources, targs, compileOpts, hashSources),
+        common::getKernel("detectExtrema", sources, targs, compileOpts, hashSources),
+        common::getKernel("interpolateExtrema", sources, targs, compileOpts, hashSources),
+        common::getKernel("calcOrientation", sources, targs, compileOpts, hashSources),
+        common::getKernel("removeDuplicates", sources, targs, compileOpts, hashSources),
+        common::getKernel("computeDescriptor", sources, targs, compileOpts, hashSources),
+        common::getKernel("computeGLOHDescriptor", sources, targs, compileOpts, hashSources),
     };
 }
 

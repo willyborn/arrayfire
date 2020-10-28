@@ -13,6 +13,7 @@
 #include <common/dispatch.hpp>
 #include <common/half.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/triangle.hpp>
 #include <math.hpp>
@@ -37,7 +38,8 @@ void triangle(Param out, const Param in, bool is_upper, bool is_unit_diag) {
     constexpr unsigned TILEX = 128;
     constexpr unsigned TILEY = 32;
 
-    static const string src(triangle_cl, triangle_cl_len);
+	static const vector<string> sources{ {triangle_cl, triangle_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
         TemplateTypename<T>(),
@@ -54,7 +56,7 @@ void triangle(Param out, const Param in, bool is_upper, bool is_unit_diag) {
     compileOpts.emplace_back(getTypeBuildDefinition<T>());
 
     auto triangle =
-        common::getKernel("triangle", {src}, tmpltArgs, compileOpts);
+        common::getKernel("triangle", sources, tmpltArgs, compileOpts, hashSources);
 
     NDRange local(TX, TY);
 

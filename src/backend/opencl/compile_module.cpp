@@ -134,7 +134,7 @@ Program buildProgram(const vector<string> &kernelSources,
 
 }  // namespace opencl
 
-string getKernelCacheFilename(const int device, const string &key) {
+string getKernelCacheFilename(const int device, const size_t &key) {
     auto &dev = opencl::getDevice(device);
 
     unsigned vendorId = dev.getInfo<CL_DEVICE_VENDOR_ID>();
@@ -145,13 +145,13 @@ string getKernelCacheFilename(const int device, const string &key) {
               [](unsigned char c) { return std::toupper(c); });
     std::replace(infix.begin(), infix.end(), ' ', '_');
 
-    return "KER" + key + "_CL_" + infix + "_AF_" +
+    return "KER" + std::to_string(key) + "_CL_" + infix + "_AF_" +
            to_string(AF_API_VERSION_CURRENT) + ".bin";
 }
 
 namespace common {
 
-Module compileModule(const string &moduleKey, const vector<string> &sources,
+Module compileModule(const size_t &moduleKey, const vector<string> &sources,
                      const vector<string> &options,
                      const vector<string> &kInstances, const bool isJIT) {
     UNUSED(kInstances);
@@ -215,7 +215,7 @@ Module compileModule(const string &moduleKey, const vector<string> &sources,
     return {program};
 }
 
-Module loadModuleFromDisk(const int device, const string &moduleKey,
+Module loadModuleFromDisk(const int device, const size_t &moduleKey,
                           const bool isJIT) {
     const string &cacheDirectory = getCacheDirectory();
     if (cacheDirectory.empty()) return Module{};

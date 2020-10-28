@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/flood_fill.hpp>
 #include <memory.hpp>
@@ -31,9 +32,13 @@ constexpr int VALID     = 2;
 constexpr int INVALID   = 1;
 constexpr int ZERO      = 0;
 
-static inline std::string floodfillSrc() {
-    static const std::string src(flood_fill_cl, flood_fill_cl_len);
+static inline std::vector<std::string> floodfillSrc() {
+	static const std::vector<std::string> src{ {flood_fill_cl, flood_fill_cl_len} };
     return src;
+}
+static inline size_t hashSources() {
+	static const size_t hashSources = deterministicHash(floodfillSrc());
+	return hashSources;
 }
 
 template<typename T>
@@ -45,8 +50,8 @@ void initSeeds(Param out, const Param seedsx, const Param seedsy) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto initSeeds = common::getKernel("init_seeds", {floodfillSrc()},
-                                       {TemplateTypename<T>()}, options);
+    auto initSeeds = common::getKernel("init_seeds", floodfillSrc(),
+                                       {TemplateTypename<T>()}, options, hashSources());
     cl::NDRange local(kernel::THREADS, 1, 1);
     cl::NDRange global(divup(seedsx.info.dims[0], local[0]) * local[0], 1, 1);
 
@@ -65,8 +70,8 @@ void finalizeOutput(Param out, const T newValue) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto finalizeOut = common::getKernel("finalize_output", {floodfillSrc()},
-                                         {TemplateTypename<T>()}, options);
+    auto finalizeOut = common::getKernel("finalize_output", floodfillSrc(),
+                                         {TemplateTypename<T>()}, options, hashSources());
     cl::NDRange local(kernel::THREADS_X, kernel::THREADS_Y, 1);
     cl::NDRange global(divup(out.info.dims[0], local[0]) * local[0],
                        divup(out.info.dims[1], local[1]) * local[1], 1);
@@ -97,8 +102,8 @@ void floodFill(Param out, const Param image, const Param seedsx,
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto floodStep = common::getKernel("flood_step", {floodfillSrc()},
-                                       {TemplateTypename<T>()}, options);
+    auto floodStep = common::getKernel("flood_step", floodfillSrc(),
+                                       {TemplateTypename<T>()}, options, hashSources());
     cl::NDRange local(kernel::THREADS_X, kernel::THREADS_Y, 1);
     cl::NDRange global(divup(out.info.dims[0], local[0]) * local[0],
                        divup(out.info.dims[1], local[1]) * local[1], 1);

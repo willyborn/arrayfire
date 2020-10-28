@@ -12,6 +12,7 @@
 #include <Param.hpp>
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel_headers/reorder.hpp>
 #include <traits.hpp>
@@ -28,7 +29,8 @@ void reorder(Param out, const Param in, const dim_t* rdims) {
     constexpr int TILEX = 512;
     constexpr int TILEY = 32;
 
-    static const std::string src(reorder_cl, reorder_cl_len);
+	static const std::vector<std::string> sources{ {reorder_cl, reorder_cl_len} };
+	static const size_t hashSources = deterministicHash(sources);
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
     };
@@ -37,7 +39,7 @@ void reorder(Param out, const Param in, const dim_t* rdims) {
     };
     options.emplace_back(getTypeBuildDefinition<T>());
 
-    auto reorderOp = common::getKernel("reorder_kernel", {src}, targs, options);
+    auto reorderOp = common::getKernel("reorder_kernel", sources, targs, options, hashSources);
 
     cl::NDRange local(TX, TY, 1);
 

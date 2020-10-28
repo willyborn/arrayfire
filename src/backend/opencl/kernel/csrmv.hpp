@@ -58,10 +58,8 @@ void csrmv(Param out, const Param &values, const Param &rowIdx,
     auto csrmvThread = common::getKernel("csrmv_thread", {src}, targs, options);
     auto csrmvBlock  = common::getKernel("csrmv_block", {src}, targs, options);
 
-    int count           = 0;
     cl::Buffer *counter = bufferAlloc(sizeof(int));
-    getQueue().enqueueWriteBuffer(*counter, CL_TRUE, 0, sizeof(int),
-                                  (void *)&count);
+    getQueue().enqueueFillBuffer<int>(*counter, 0, 0, sizeof(int));
 
     // TODO: Figure out the proper way to choose either csrmv_thread or
     // csrmv_block

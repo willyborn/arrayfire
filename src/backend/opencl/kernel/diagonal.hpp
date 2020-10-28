@@ -28,7 +28,8 @@ namespace kernel {
 
 template<typename T>
 static void diagCreate(Param out, Param in, int num) {
-    static const std::string src(diag_create_cl, diag_create_cl_len);
+    static const std::vector<std::string> sources{ {diag_create_cl, diag_create_cl_len} };
+    static const size_t hashSources = deterministicHash(sources);
 
     std::vector<TemplateArg> targs = {
         TemplateTypename<T>(),
@@ -40,7 +41,7 @@ static void diagCreate(Param out, Param in, int num) {
     options.emplace_back(getTypeBuildDefinition<T>());
 
     auto diagCreate =
-        common::getKernel("diagCreateKernel", {src}, targs, options);
+        common::getKernel("diagCreateKernel", sources, targs, options, hashSources);
 
     cl::NDRange local(32, 8);
     int groups_x = divup(out.info.dims[0], local[0]);

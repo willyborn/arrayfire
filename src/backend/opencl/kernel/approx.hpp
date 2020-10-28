@@ -28,11 +28,6 @@
 namespace opencl {
 namespace kernel {
 
-inline std::string interpSrc() {
-    static const std::string src(interp_cl, interp_cl_len);
-    return src;
-}
-
 template<typename Ty, typename Tp>
 auto genCompileOptions(const int order, const int xdim, const int ydim = -1) {
     constexpr bool isComplex =
@@ -70,7 +65,7 @@ void approx1(Param yo, const Param yi, const Param xo, const int xdim,
 
     constexpr int THREADS = 256;
 
-	static const vector<string> sources{ interpSrc(), {approx1_cl, approx1_cl_len} };
+    static const vector<string> sources{ {interp_cl, interp_cl_len}, {approx1_cl, approx1_cl_len} };
 	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {
@@ -113,7 +108,7 @@ void approx2(Param zo, const Param zi, const Param xo, const int xdim,
     constexpr int TX = 16;
     constexpr int TY = 16;
 
-	static const vector<string> sources{ interpSrc(), {approx2_cl, approx2_cl_len} };
+	static const vector<string> sources{ {interp_cl, interp_cl_len}, {approx2_cl, approx2_cl_len} };
 	static const size_t hashSources = deterministicHash(sources);
 
     vector<TemplateArg> tmpltArgs = {

@@ -11,6 +11,7 @@
 
 #include <common/dispatch.hpp>
 #include <common/kernel_cache.hpp>
+#include <common/util.hpp>
 #include <debug_opencl.hpp>
 #include <kernel/config.hpp>
 #include <kernel_headers/random_engine_mersenne.hpp>
@@ -82,9 +83,10 @@ static Kernel getRandomEngineKernel(const af_random_engine_type type,
 }
 
 static Kernel getMersenneInitKernel(void) {
-    static const std::string src(random_engine_mersenne_init_cl,
-                                 random_engine_mersenne_init_cl_len);
-    return common::getKernel("mersenneInitState", {src}, {});
+    static const std::vector<std::string> sources{ {random_engine_mersenne_init_cl,
+                                 random_engine_mersenne_init_cl_len} };
+    static const size_t hashSources = deterministicHash(sources);
+    return common::getKernel("mersenneInitState", sources, {}, {}, hashSources);
 }
 
 template<typename T>

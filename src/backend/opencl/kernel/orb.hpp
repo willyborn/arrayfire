@@ -365,12 +365,7 @@ void orb(unsigned* out_feat, Param& x_out, Param& y_out, Param& score_out,
 
         // Compute ORB descriptors
         Buffer* d_desc_lvl = bufferAlloc(usable_feat * 8 * sizeof(unsigned));
-        vector<unsigned> h_desc_lvl(usable_feat * 8, 0);
-        {
-            getQueue().enqueueWriteBuffer(*d_desc_lvl, CL_FALSE, 0,
-                                          usable_feat * 8 * sizeof(unsigned),
-                                          h_desc_lvl.data());
-        }
+        getQueue().enqueueFillBuffer<unsigned>(*d_desc_lvl, 0, 0, usable_feat * 8 * sizeof(unsigned));
         auto eoOp = kernels[3];
         if (blur_img) {
             eoOp(EnqueueArgs(getQueue(), global_centroid, local_centroid),

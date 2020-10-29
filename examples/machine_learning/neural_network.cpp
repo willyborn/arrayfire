@@ -117,10 +117,10 @@ void ann::back_propagate(const vector<array> signal, const array &target,
 
 ann::ann(vector<int> layers, double range, dtype dt)
     : num_layers(layers.size()), weights(layers.size() - 1), datatype(dt) {
-    std::cout
-        << "Initializing weights using a random uniformly distribution between "
-        << -range / 2 << " and " << range / 2 << " at precision "
-        << toStr(datatype) << std::endl;
+    //std::cout
+    //    << "Initializing weights using a random uniformly distribution between "
+    //    << -range / 2 << " and " << range / 2 << " at precision "
+     //   << toStr(datatype) << std::endl;
     for (int i = 0; i < num_layers - 1; i++) {
         weights[i] = range * randu(layers[i] + 1, layers[i + 1]) - range / 2;
         if (datatype != f32) weights[i] = weights[i].as(datatype);
@@ -213,7 +213,9 @@ int ann_demo(bool console, int perc, const dtype dt) {
 	layers.push_back(50);
 	layers.push_back(num_classes);
 
-	for (int b : { 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128 }) {	//WBN
+    const int epochs = 250;
+    std::cout << "\nEpochs:" << epochs << "; Precision:" << toStr(dt);
+	for (int batchSize : { 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128 }) {	//WBN
 		// Create network: architecture, range, datatype
 		ann network(layers, 0.05, dt);
 
@@ -221,8 +223,8 @@ int ann_demo(bool console, int perc, const dtype dt) {
 		timer::start();
 		network.train(train_feats, train_target,
 			2.0,    // learning rate / alpha
-			250,    // max epochs
-			b, // WBN 100,    // batch size
+			epochs,    // max epochs
+			batchSize, // WBN 100,    // batch size
 			0.5,    // max error
 			true);  // verbose
 		af::sync();
@@ -239,16 +241,12 @@ int ann_demo(bool console, int perc, const dtype dt) {
 		af::sync();
 		double test_time = timer::stop() / 100;
 
-		printf("\nTraining set:\n");
-		printf("Accuracy on training data: %2.2f\n",
-			   accuracy(train_output, train_target));
-
-		printf("\nTest set:\n");
-		printf("Accuracy on testing  data: %2.2f\n",
-			   accuracy(test_output, test_target));
-
-		printf("\nTraining time: %4.4lf s\n", train_time);
-		printf("Prediction time: %4.4lf s\n\n", test_time);
+        std::cout
+            << "\nBatch size:" << batchSize
+            << " | Training time:" << train_time
+            << " - Predic time:" << test_time
+            << " | Accuracy training:" << accuracy(train_output, train_target)
+            << " | Accuracy test:" << accuracy(test_output, test_target);
 	}; //WBN
 
     if (!console) {

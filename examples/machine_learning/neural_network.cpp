@@ -140,9 +140,6 @@ double ann::train(const array &input, const array &target, double alpha,
 
     double err = 0;
 
-	std::cout
-		<< "Batchsize = " << batch_size << "\n";
-
     // Training the entire network
     for (int i = 0; i < max_epochs; i++) {
         for (int j = 0; j < num_batches - 1; j++) {
@@ -215,7 +212,7 @@ int ann_demo(bool console, int perc, const dtype dt) {
 
     const int epochs = 250;
     std::cout << "\nEpochs:" << epochs << "; Precision:" << toStr(dt);
-	for (int batchSize : { 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128 }) {	//WBN
+	for (int batchSize : { 32, 64, 96, 128, 256, 512, 1024 }) {
 		// Create network: architecture, range, datatype
 		ann network(layers, 0.05, dt);
 
@@ -226,7 +223,7 @@ int ann_demo(bool console, int perc, const dtype dt) {
 			epochs,    // max epochs
 			batchSize, // WBN 100,    // batch size
 			0.5,    // max error
-			true);  // verbose
+			false);  // verbose
 		af::sync();
 		double train_time = timer::stop();
 
@@ -237,17 +234,17 @@ int ann_demo(bool console, int perc, const dtype dt) {
 		// Benchmark prediction
 		af::sync();
 		timer::start();
-		for (int i = 0; i < 100; i++) { network.predict(test_feats); }
+		for (int i = 1000; i > 0; --i) { network.predict(test_feats); }
 		af::sync();
 		double test_time = timer::stop() / 100;
 
         std::cout
             << "\nBatch size:" << batchSize
-            << " | Training time:" << train_time
-            << " - Predic time:" << test_time
+            << " | Training time:" << train_time << "s"
+            << " - Predic time:" << test_time << "s"
             << " | Accuracy training:" << accuracy(train_output, train_target)
             << " | Accuracy test:" << accuracy(test_output, test_target);
-	}; //WBN
+	};
 
     if (!console) {
         // Get 20 random test images.

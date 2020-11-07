@@ -171,7 +171,7 @@ double ann::train(const array &input, const array &target, double alpha,
 
         if (verbose) {
             if ((i + 1) % 10 == 0)
-                printf("Epoch: %4d, Error: %0.4f, Time: %.1lf s\n", i + 1, err, timer::stop());
+                printf("Epoch: %4d, Error: %0.4f\n", i + 1, err);
         }
     }
     return err;
@@ -190,7 +190,7 @@ int ann_demo(bool console, int perc, const dtype dt) {
                       test_images, train_target, test_target, frac);
     if (dt != f32) {
         train_images = train_images.as(dt);
-        test_images = test_images.as(dt);
+        test_images  = test_images.as(dt);
         train_target = train_target.as(dt);
     }
 
@@ -198,10 +198,10 @@ int ann_demo(bool console, int perc, const dtype dt) {
 
     // Reshape images into feature vectors
     array train_feats = moddims(train_images, feature_size, num_train).T();
-    array test_feats = moddims(test_images, feature_size, num_test).T();
+    array test_feats  = moddims(test_images, feature_size, num_test).T();
 
     train_target = train_target.T();
-    test_target = test_target.T();
+    test_target  = test_target.T();
 
     // Network parameters
     vector<int> layers;
@@ -232,16 +232,16 @@ int ann_demo(bool console, int perc, const dtype dt) {
         array test_output = network.predict(test_feats);
 
         // Benchmark prediction
-        af::sync();
-        timer::start();
-        for (int i = 1000; i > 0; --i) { network.predict(test_feats); }
-        af::sync();
-        double test_time = timer::stop() / 100;
+        //af::sync();
+        //timer::start();
+        //for (int i = 1000; i > 0; --i) { network.predict(test_feats); }
+        //af::sync();
+        //double test_time = timer::stop() / 100;
 
         std::cout
             << "\nBatch size:" << batchSize
             << " | Training time:" << train_time << "s"
-            << " - Predic time:" << test_time << "s"
+            //<< " - Predic time:" << test_time << "s"
             << " | Accuracy training:" << accuracy(train_output, train_target)
             << " | Accuracy test:" << accuracy(test_output, test_target);
     };

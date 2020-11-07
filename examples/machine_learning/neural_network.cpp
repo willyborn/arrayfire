@@ -120,7 +120,7 @@ ann::ann(vector<int> layers, double range, dtype dt)
     //std::cout
     //    << "Initializing weights using a random uniformly distribution between "
     //    << -range / 2 << " and " << range / 2 << " at precision "
-     //   << toStr(datatype) << std::endl;
+    //    << toStr(datatype) << std::endl;
     for (int i = 0; i < num_layers - 1; i++) {
         weights[i] = range * randu(layers[i] + 1, layers[i + 1]) - range / 2;
         if (datatype != f32) weights[i] = weights[i].as(datatype);
@@ -178,65 +178,65 @@ double ann::train(const array &input, const array &target, double alpha,
 }
 
 int ann_demo(bool console, int perc, const dtype dt) {
-	printf("** ArrayFire ANN Demo **\n\n");
+    printf("** ArrayFire ANN Demo **\n\n");
 
-	array train_images, test_images;
-	array train_target, test_target;
-	int num_classes, num_train, num_test;
+    array train_images, test_images;
+    array train_target, test_target;
+    int num_classes, num_train, num_test;
 
-	// Load mnist data
-	float frac = (float)(perc) / 100.0;
-	setup_mnist<true>(&num_classes, &num_train, &num_test, train_images,
-		test_images, train_target, test_target, frac);
-	if (dt != f32) {
-		train_images = train_images.as(dt);
-		test_images = test_images.as(dt);
-		train_target = train_target.as(dt);
-	}
+    // Load mnist data
+    float frac = (float)(perc) / 100.0;
+    setup_mnist<true>(&num_classes, &num_train, &num_test, train_images,
+                      test_images, train_target, test_target, frac);
+    if (dt != f32) {
+        train_images = train_images.as(dt);
+        test_images = test_images.as(dt);
+        train_target = train_target.as(dt);
+    }
 
-	int feature_size = train_images.elements() / num_train;
+    int feature_size = train_images.elements() / num_train;
 
-	// Reshape images into feature vectors
-	array train_feats = moddims(train_images, feature_size, num_train).T();
-	array test_feats = moddims(test_images, feature_size, num_test).T();
+    // Reshape images into feature vectors
+    array train_feats = moddims(train_images, feature_size, num_train).T();
+    array test_feats = moddims(test_images, feature_size, num_test).T();
 
-	train_target = train_target.T();
-	test_target = test_target.T();
+    train_target = train_target.T();
+    test_target = test_target.T();
 
-	// Network parameters
-	vector<int> layers;
-	layers.push_back(train_feats.dims(1));
-	layers.push_back(100);
-	layers.push_back(50);
-	layers.push_back(num_classes);
+    // Network parameters
+    vector<int> layers;
+    layers.push_back(train_feats.dims(1));
+    layers.push_back(100);
+    layers.push_back(50);
+    layers.push_back(num_classes);
 
     const int epochs = 250;
     std::cout << "\nEpochs:" << epochs << "; Precision:" << toStr(dt);
-	for (int batchSize : { 32, 64, 96, 128, 256, 512, 1024 }) {
-		// Create network: architecture, range, datatype
-		ann network(layers, 0.05, dt);
+    for (int batchSize : { 32, 40, 48, 52, 64, 96, 128, 256, 512, 1024 }) {
+        // Create network: architecture, range, datatype
+        ann network(layers, 0.05, dt);
 
-		// Train network
-		timer::start();
-		network.train(train_feats, train_target,
-			2.0,    // learning rate / alpha
-			epochs,    // max epochs
-			batchSize, // WBN 100,    // batch size
-			0.5,    // max error
-			false);  // verbose
-		af::sync();
-		double train_time = timer::stop();
+        // Train network
+        timer::start();
+        network.train(train_feats, train_target,
+            2.0,    // learning rate / alpha
+            epochs,    // max epochs
+            batchSize, // WBN 100,    // batch size
+            0.5,    // max error
+            false);  // verbose
+        af::sync();
+        double train_time = timer::stop();
 
-		// Run the trained network and test accuracy.
-		array train_output = network.predict(train_feats);
-		array test_output = network.predict(test_feats);
+        // Run the trained network and test accuracy.
+        array train_output = network.predict(train_feats);
+        array test_output = network.predict(test_feats);
 
-		// Benchmark prediction
-		af::sync();
-		timer::start();
-		for (int i = 1000; i > 0; --i) { network.predict(test_feats); }
-		af::sync();
-		double test_time = timer::stop() / 100;
+        // Benchmark prediction
+        af::sync();
+        timer::start();
+        for (int i = 1000; i > 0; --i) { network.predict(test_feats); }
+        af::sync();
+        double test_time = timer::stop() / 100;
 
         std::cout
             << "\nBatch size:" << batchSize
@@ -244,7 +244,7 @@ int ann_demo(bool console, int perc, const dtype dt) {
             << " - Predic time:" << test_time << "s"
             << " | Accuracy training:" << accuracy(train_output, train_target)
             << " | Accuracy test:" << accuracy(test_output, test_target);
-	};
+    };
 
     if (!console) {
         // Get 20 random test images.

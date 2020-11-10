@@ -239,11 +239,11 @@ int ann_demo(bool console, int perc, const dtype dt) {
         //double test_time = timer::stop() / 100;
 
         std::cout
-            << "\nBatch size:" << batchSize
-            << " | Training time:" << train_time << "s"
-            //<< " - Predic time:" << test_time << "s"
-            << " | Accuracy training:" << accuracy(train_output, train_target)
-            << " | Accuracy test:" << accuracy(test_output, test_target);
+            << "\nBatch size: " << batchSize
+            << " | Training time: " << train_time << " s"
+            //<< " - Predic time: " << test_time << " s"
+            << " | Accuracy training: " << accuracy(train_output, train_target)
+            << " | Accuracy test: " << accuracy(test_output, test_target);
     };
 
     if (!console) {

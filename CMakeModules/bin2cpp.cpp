@@ -152,6 +152,7 @@ stringstream removeComments(ifstream &input, string &filename) {
     } del{commentsLevel == MULTILINE ? line : nullptr, nullptr};
     vector<segment> dels;
     strncpy(local, line, sizeof(line)); // will be overwritten by strtok
+    local[sizeof(local) - 1] = 0;       // sring is always terminated
     char *context = nullptr;
     char *token = STRTOK_CALL(local, delimitors, &context);
     do {

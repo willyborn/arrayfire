@@ -23,6 +23,7 @@
 #include <errorcodes.hpp>
 #include <version.hpp>
 #include <af/version.h>
+#include <cstring>
 #include <memory>
 
 #ifdef OS_MAC
@@ -359,8 +360,9 @@ bool isDoubleSupported(unsigned device) {
         common::lock_guard_t lock(devMngr.deviceMutex);
         dev = *devMngr.mDevices[device];
     }
-
-    return (dev.getInfo<CL_DEVICE_DOUBLE_FP_CONFIG>() > 0);
+    // FP64 is an optional extension for OpenCL 1.2
+    return (dev.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_fp64") !=
+            std::string::npos);
 }
 
 bool isHalfSupported(unsigned device) {
@@ -371,21 +373,9 @@ bool isHalfSupported(unsigned device) {
         common::lock_guard_t lock(devMngr.deviceMutex);
         dev = *devMngr.mDevices[device];
     }
-    cl_device_fp_config config = 0;
-    size_t ret_size            = 0;
-    // NVIDIA OpenCL seems to return error codes for CL_DEVICE_HALF_FP_CONFIG.
-    // It seems to be a bug in their implementation. Assuming if this function
-    // fails that the implemenation does not support f16 type. Using the C API
-    // to avoid exceptions
-    cl_int err =
-        clGetDeviceInfo(dev(), CL_DEVICE_HALF_FP_CONFIG,
-                        sizeof(cl_device_fp_config), &config, &ret_size);
-
-    if (err) {
-        return false;
-    } else {
-        return config > 0;
-    }
+    // FP16 is an optional extension for OpenCL 1.2
+    return (dev.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_fp16") !=
+            std::string::npos);
 }
 
 void devprop(char* d_name, char* d_platform, char* d_toolkit, char* d_compute) {

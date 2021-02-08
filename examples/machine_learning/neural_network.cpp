@@ -117,8 +117,9 @@ void ann::back_propagate(const vector<array> signal, const array &target,
 
 ann::ann(vector<int> layers, double range, dtype dt)
     : num_layers(layers.size()), weights(layers.size() - 1), datatype(dt) {
-    //std::cout
-    //    << "Initializing weights using a random uniformly distribution between "
+    // std::cout
+    //    << "Initializing weights using a random uniformly distribution between
+    //    "
     //    << -range / 2 << " and " << range / 2 << " at precision "
     //    << toStr(datatype) << std::endl;
     for (int i = 0; i < num_layers - 1; i++) {
@@ -212,44 +213,45 @@ int ann_demo(bool console, int perc, const dtype dt) {
 
     const int epochs = 250;
     std::cout << "\nEpochs:" << epochs << "; Precision:" << toStr(dt);
-    for (int batchSize : { 32, 40, 48, 52, 64, 96, 128, 256, 512, 1024 }) {
+    for (int batchSize : {32, 40, 48, 52, 64, 96, 100, 128, 256, 512, 1024}) {
         // Create network: architecture, range, datatype
         ann network(layers, 0.05, dt);
 
         // Train network
         timer::start();
         network.train(train_feats, train_target,
-            2.0,    // learning rate / alpha
-            epochs,    // max epochs
-            batchSize, // WBN 100,    // batch size
-            0.5,    // max error
-            false);  // verbose
+                      2.0,        // learning rate / alpha
+                      epochs,     // max epochs
+                      batchSize,  // WBN 100,    // batch size
+                      0.5,        // max error
+                      false);     // verbose
         af::sync();
         double train_time = timer::stop();
 
         // Run the trained network and test accuracy.
         array train_output = network.predict(train_feats);
-        array test_output = network.predict(test_feats);
+        array test_output  = network.predict(test_feats);
 
         // Benchmark prediction
-        //af::sync();
-        //timer::start();
-        //for (int i = 1000; i > 0; --i) { network.predict(test_feats); }
-        //af::sync();
-        //double test_time = timer::stop() / 100;
+        // af::sync();
+        // timer::start();
+        // for (int i = 1000; i > 0; --i) { network.predict(test_feats); }
+        // af::sync();
+        // double test_time = timer::stop() / 100;
 
-        std::cout
-            << "\nBatch size: " << batchSize
-            << " | Training time: " << train_time << " s"
-            //<< " - Predic time: " << test_time << " s"
-            << " | Accuracy training: " << accuracy(train_output, train_target)
-            << " | Accuracy test: " << accuracy(test_output, test_target);
+        std::cout << "\nBatch size: " << batchSize
+                  << " | Training time: " << train_time
+                  << " s"
+                  //<< " - Predic time: " << test_time << " s"
+                  << " | Accuracy training: "
+                  << accuracy(train_output, train_target)
+                  << " | Accuracy test: " << accuracy(test_output, test_target);
     };
 
     if (!console) {
         // Get 20 random test images.
-        //test_output = test_output.T();
-        //display_results<true>(test_images, test_output, test_target.T(), 20);
+        // test_output = test_output.T();
+        // display_results<true>(test_images, test_output, test_target.T(), 20);
     }
 
     return 0;

@@ -30,6 +30,15 @@ void join(Param out, const int jdim, const Param in1, const Param in2) {
 
 template<typename T>
 void join(Param out, const int jdim, const std::vector<Param> &in) {
+    switch (size) {
+        case 0: return;
+        case 1:
+            return kernel::memcopy<T>(*out.data, dim4(4, out.info.strides),
+                                      *in[0].data, dim4(4, in[0].info.dims),
+                                      dim4(4, in[0].info.strides),
+                                      in[0].info.offset, 4, out.info.offset);
+    }
+
     const KParam nullInfo{};
     const cl::Buffer nullData;
 
@@ -71,7 +80,7 @@ void join(Param out, const int jdim, const std::vector<Param> &in) {
          start < end;
          start += 5, end = std::min(static_cast<int>(in.size()), start + 5)) {
         // Handle max 5 inputs each cycle
-        dim4 info(ondims, in[start].info.dims);
+        dim4 info(in[start].info.dims);
         for (int n = start + 1; n < end; ++n) {
             // Other dims are per definition equal
             info.dims[jdim] = std::max(info.dims[jdim], in[n].info.dims[jdim]);
@@ -89,46 +98,49 @@ void join(Param out, const int jdim, const std::vector<Param> &in) {
         switch (size) {
             case 1: {
                 const auto &i = in[start];
-                kernel::memcopy<T>(*out.data, dim4(4, out.info.strides),
-                                   *i.data, dim4(4, i.info.dims),
-                                   dim4(4, i.info.strides), i.info.offset,
-                                   ondims, out.info.offset);
-            } break;
-            case 2: {
+                return kernel::memcopy<T>(
+                    *out.data, dim4(4, out.info.strides), *i.data,
+                    dim4(4, i.info.dims), dim4(4, i.info.strides),
+                    i.info.offset, ondims, out.info.offset);
+            }
+            case 2:
                 joinN(cl::EnqueueArgs(getQueue(), global, local), *out.data,
                       out.info, jdim, size, *in[start].data, in[start].info,
                       *in[start + 1].data, in[start + 1].info, nullData,
                       nullInfo, nullData, nullInfo, nullData, nullInfo);
-            } break;
-            case 3: {
+                CL_DEBUG_FINISH(getQueue());
+                return;
+            case 3:
                 joinN(cl::EnqueueArgs(getQueue(), global, local), *out.data,
                       out.info, jdim, size, *in[start].data, in[start].info,
                       *in[start + 1].data, in[start + 1].info,
                       *in[start + 2].data, in[start + 2].info, nullData,
                       nullInfo, nullData, nullInfo);
-            } break;
-            case 4: {
+                CL_DEBUG_FINISH(getQueue());
+                return;
+            case 4:
                 joinN(cl::EnqueueArgs(getQueue(), global, local), *out.data,
                       out.info, jdim, size, *in[start].data, in[start].info,
                       *in[start + 1].data, in[start + 1].info,
                       *in[start + 2].data, in[start + 2].info,
                       *in[start + 3].data, in[start + 3].info, nullData,
                       nullInfo);
-            } break;
-            case 5: {
+                CL_DEBUG_FINISH(getQueue());
+                return;
+            case 5:
                 joinN(cl::EnqueueArgs(getQueue(), global, local), *out.data,
                       out.info, jdim, size, *in[start].data, in[start].info,
                       *in[start + 1].data, in[start + 1].info,
                       *in[start + 2].data, in[start + 2].info,
                       *in[start + 3].data, in[start + 3].info,
                       *in[start + 4].data, in[start + 4].info);
-            } break;
+                CL_DEBUG_FINISH(getQueue());
+                for (int d = start; d < end; ++d) {
+                    out.info.offset +=
+                        in[d].info.dims[jdim] * in[d].info.strides[jdim];
+                }
         }
-        for (int d = start; d < end; ++d) {
-            out.info.offset += in[d].info.dims[jdim] * in[d].info.strides[jdim];
-        }
-        CL_DEBUG_FINISH(getQueue());
-    }  // namespace kernel
+    }
 }
 }  // namespace kernel
 }  // namespace opencl

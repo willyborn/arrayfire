@@ -29,7 +29,7 @@ void join(Param out, const int jdim, const Param in1, const Param in2) {
 }
 
 template<typename T>
-void join(Param out, int jdim, std::vector<Param> &in) {
+void join(Param out, const int jdim, const std::vector<Param> &in) {
     const KParam nullInfo{};
     const cl::Buffer nullData;
 

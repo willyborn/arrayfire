@@ -191,9 +191,11 @@ void Array<T>::eval() {
     data = Buffer_ptr(memAlloc<T>(info.elements()).release(), bufferFree);
 
     // Do not replace this with cast operator
-    KParam info = {{dims()[0], dims()[1], dims()[2], dims()[3]},
-                   {strides()[0], strides()[1], strides()[2], strides()[3]},
-                   0};
+    KParam info = {
+        {dims().dims[0], dims().dims[1], dims().dims[2], dims().dims[3]},
+        {strides().dims[0], strides().dims[1], strides().dims[2],
+         strides().dims[3]},
+        0};
 
     Param res = {data.get(), info};
 
@@ -245,11 +247,11 @@ void evalMultiple(vector<Array<T> *> arrays) {
             Buffer_ptr(memAlloc<T>(info.elements()).release(), bufferFree);
 
         // Do not replace this with cast operator
-        KParam kInfo = {
-            {info.dims()[0], info.dims()[1], info.dims()[2], info.dims()[3]},
-            {info.strides()[0], info.strides()[1], info.strides()[2],
-             info.strides()[3]},
-            0};
+        KParam kInfo = {{info.dims().dims[0], info.dims().dims[1],
+                         info.dims().dims[2], info.dims().dims[3]},
+                        {info.strides().dims[0], info.strides().dims[1],
+                         info.strides().dims[2], info.strides().dims[3]},
+                        0};
 
         outputs.emplace_back(array->data.get(), kInfo);
         output_arrays.push_back(array);

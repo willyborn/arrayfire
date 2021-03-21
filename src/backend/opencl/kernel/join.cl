@@ -7,35 +7,46 @@
  * http://arrayfire.com/licenses/BSD-3-Clause
  ********************************************************/
 
-kernel void join_kernel(global T *d_out, const KParam out, global const T *d_in,
-                        const KParam in, const int o0, const int o1,
-                        const int o2, const int o3, const int blocksPerMatX,
-                        const int blocksPerMatY) {
-    const int iz = get_group_id(0) / blocksPerMatX;
-    const int iw = get_group_id(1) / blocksPerMatY;
+kernel void joinN(global T *d_out, const KParam out, const int jdim,
+                  const int ins, global const T *d_in0, const KParam in0,
+                  global const T *d_in1, const KParam in1,
+                  global const T *d_in2, const KParam in2,
+                  global const T *d_in3, const KParam in3,
+                  global const T *d_in4, const KParam in4) {
+    const int g0 = get_global_id(0);
+    const int g1 = get_global_id(1);
+    const int g2 = get_global_id(2);
 
-    const int blockIdx_x = get_group_id(0) - iz * blocksPerMatX;
-    const int blockIdx_y = get_group_id(1) - iw * blocksPerMatY;
+    global const T *d_in[5] = {d_in0, d_in1, d_in2, d_in3, d_in4};
+    const KParam *in[5]     = {&in0, &in1, &in2, &in3, &in4};
 
-    const int xx = get_local_id(0) + blockIdx_x * get_local_size(0);
-    const int yy = get_local_id(1) + blockIdx_y * get_local_size(1);
+    int idx_out = out.offset + g0 * out.strides[0] + g1 * out.strides[1] +
+                  g2 * out.strides[2];
 
-    const int incy = blocksPerMatY * get_local_size(1);
-    const int incx = blocksPerMatX * get_local_size(0);
-
-    d_in = d_in + in.offset;
-
-    if (iz < in.dims[2] && iw < in.dims[3]) {
-        d_out = d_out + (iz + o2) * out.strides[2] + (iw + o3) * out.strides[3];
-        d_in  = d_in + iz * in.strides[2] + iw * in.strides[3];
-
-        for (int iy = yy; iy < in.dims[1]; iy += incy) {
-            global T *d_in_  = d_in + iy * in.strides[1];
-            global T *d_out_ = d_out + (iy + o1) * out.strides[1];
-
-            for (int ix = xx; ix < in.dims[0]; ix += incx) {
-                d_out_[ix + o0] = d_in_[ix];
+    const int ostrides3 = out.strides[3];
+    const int ostridesj = out.strides[jdim];
+    const int n         = ins > 5 ? 5 : ins;
+    for (int i = 0; i < n; ++i) {
+        const KParam *src     = in[i];
+        const global T *d_src = d_in[i];
+        const bool inside_in =
+            (g0 < src->dims[0]) && (g1 < src->dims[1]) && (g2 < src->dims[2]);
+        if (inside_in) {
+            int idx_in = src->offset + g0 * src->strides[0] +
+                         g1 * src->strides[1] + g2 * src->strides[2];
+            d_out[idx_out]      = d_src[idx_in];
+            int g3              = 1;
+            const int istrides3 = src->strides[3];
+            const int idims3    = src->dims[3];
+            int idx_out3        = idx_out;
+            while (g3 < idims3) {
+                idx_in += istrides3;
+                T val = d_src[idx_in];
+                idx_out3 += ostrides3;
+                d_out[idx_out3] = val;
+                ++g3;
             }
         }
+        idx_out += src->dims[jdim] * ostridesj;
     }
 }

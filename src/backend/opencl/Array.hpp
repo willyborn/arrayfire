@@ -235,9 +235,11 @@ class Array {
     size_t getAllocatedBytes() const;
 
     operator Param() const {
-        KParam info = {{dims()[0], dims()[1], dims()[2], dims()[3]},
-                       {strides()[0], strides()[1], strides()[2], strides()[3]},
-                       getOffset()};
+        KParam info = {
+            {dims().dims[0], dims().dims[1], dims().dims[2], dims().dims[3]},
+            {strides().dims[0], strides().dims[1], strides().dims[2],
+             strides().dims[3]},
+            getOffset()};
 
         Param out{(cl::Buffer *)this->get(), info};
         return out;
@@ -245,8 +247,9 @@ class Array {
 
     operator KParam() const {
         KParam kinfo = {
-            {dims()[0], dims()[1], dims()[2], dims()[3]},
-            {strides()[0], strides()[1], strides()[2], strides()[3]},
+            {dims().dims[0], dims().dims[1], dims().dims[2], dims().dims[3]},
+            {strides().dims[0], strides().dims[1], strides().dims[2],
+             strides().dims[3]},
             getOffset()};
 
         return kinfo;

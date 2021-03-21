@@ -99,8 +99,8 @@ void join(Param out, const int jdim, const std::vector<Param> &in) {
             case 1: {
                 const auto &i = in[start];
                 return kernel::memcopy<T>(
-                    *out.data, dim4(4, out.info.strides), *i.data,
-                    dim4(4, i.info.dims), dim4(4, i.info.strides),
+                    *out.data, dim4(ondims, out.info.strides), *i.data,
+                    dim4(ondims, i.info.dims), dim4(ondims, i.info.strides),
                     i.info.offset, ondims, out.info.offset);
             }
             case 2:

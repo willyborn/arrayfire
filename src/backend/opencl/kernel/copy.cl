@@ -8,11 +8,11 @@
  ********************************************************/
 
 typedef struct {
-    dim_t dim[4];
+    int dims[4];
 } dims_t;
 
-inType scale(inType value, float factor) {
-#ifdef inType_float2
+inType scale(inType value, factorType factor) {
+#if defined(inType_float2) || defined(inType_double2)
     return (inType)(value.s0 * factor, value.s1 * factor);
 #else
     return (inType)(value * factor);
@@ -47,42 +47,64 @@ inType scale(inType value, float factor) {
 
 #endif
 
-kernel void reshapeCopy(global outType *dst, KParam oInfo,
-                        global const inType *src, KParam iInfo,
-                        outType default_value, float factor, dims_t trgt,
-                        int blk_x, int blk_y) {
-    uint lx = get_local_id(0);
-    uint ly = get_local_id(1);
+kernel void reshapeCopy(global outType *out, const dims_t odims,
+                        const dims_t ostrides, const uint ooffset,
+                        global const inType *in, const dims_t idims,
+                        const dims_t istrides, const uint ioffset,
+                        const outType default_value, const factorType factor) {
+    const int g0 = get_global_id(0);  // dim0 of OUT buffer, not in buffer!!
+    const int g1 = get_global_id(1);  // dim1 of OUT buffer, not in buffer!!
+    const int g2 = get_global_id(2);  // dim2 of OUT buffer, not in buffer!!
 
-    uint gz         = get_group_id(0) / blk_x;
-    uint gw         = get_group_id(1) / blk_y;
-    uint blockIdx_x = get_group_id(0) - (blk_x)*gz;
-    uint blockIdx_y = get_group_id(1) - (blk_y)*gw;
-    uint gx         = blockIdx_x * get_local_size(0) + lx;
-    uint gy         = blockIdx_y * get_local_size(1) + ly;
-
-    global const inType *in =
-        src + (gw * iInfo.strides[3] + gz * iInfo.strides[2] +
-               gy * iInfo.strides[1] + iInfo.offset);
-    global outType *out = dst + (gw * oInfo.strides[3] + gz * oInfo.strides[2] +
-                                 gy * oInfo.strides[1] + oInfo.offset);
-
-    uint istride0 = iInfo.strides[0];
-    uint ostride0 = oInfo.strides[0];
-
-    if (gy < oInfo.dims[1] && gz < oInfo.dims[2] && gw < oInfo.dims[3]) {
-        int loop_offset = get_local_size(0) * blk_x;
-        bool cond = gy < trgt.dim[1] && gz < trgt.dim[2] && gw < trgt.dim[3];
-        for (int rep = gx; rep < oInfo.dims[0]; rep += loop_offset) {
-            outType temp = default_value;
+    const bool inside_out =
+        (g0 < odims.dims[0]) && (g1 < odims.dims[1]) && (g2 < odims.dims[2]);
+    if (inside_out) {
+        int idx_in = ioffset + g0 * istrides.dims[0] + g1 * istrides.dims[1] +
+                     g2 * istrides.dims[2];
 #if SAME_DIMS
-            temp = CONVERT(scale(in[rep * istride0], factor));
-#else
-            if (rep < trgt.dim[0] && cond) {
-                temp = CONVERT(scale(in[rep * istride0], factor));
-            }
-#endif
-            out[rep * ostride0] = temp;
+        outType val = CONVERT(scale(in[idx_in], factor));
+        int idx_out = ooffset + g0 * ostrides.dims[0] + g1 * ostrides.dims[1] +
+                      g2 * ostrides.dims[2];
+        out[idx_out]        = val;
+        const int istrides3 = istrides.dims[3];
+        const int ostrides3 = ostrides.dims[3];
+        const int odims3    = odims.dims[3];
+        // g3=0 is performed above
+        int g3 = 1;
+        while (g3 < odims3) {
+            idx_in += istrides3;
+            val = CONVERT(scale(in[idx_in], factor));
+            idx_out += ostrides3;
+            out[idx_out] = val;
+            ++g3;
         }
+#else
+        const bool inside_in = (g0 < idims.dims[0]) && (g1 < idims.dims[1]) &&
+                               (g2 < idims.dims[2]);
+        outType val =
+            inside_in ? CONVERT(scale(in[idx_in], factor)) : default_value;
+        int idx_out = ooffset + g0 * ostrides.dims[0] + g1 * ostrides.dims[1] +
+                      g2 * ostrides.dims[2];
+        out[idx_out] = val;
+        const int istrides3 = istrides.dims[3];
+        const int ostrides3 = ostrides.dims[3];
+        const int odims3 = odims.dims[3];
+        const int idims3 = inside_in ? min(idims.dims[3], odims3) : 0;
+        // g3=0 is performed above
+        int g3 = 1;
+        while (g3 < idims3) {
+            idx_in += istrides3;
+            val = CONVERT(scale(in[idx_in], factor));
+            idx_out += ostrides3;
+            out[idx_out] = val;
+            ++g3;
+        }
+        while (g3 < odims3) {
+            // Here we are certain that we are outside inside_in
+            idx_out += ostrides3;
+            out[idx_out] = default_value;
+            ++g3;
+        }
+#endif
     }
 }

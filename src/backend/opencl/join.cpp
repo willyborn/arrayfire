@@ -23,90 +23,42 @@ using std::transform;
 using std::vector;
 
 namespace opencl {
-dim4 calcOffset(const dim4 &dims, int dim) {
-    dim4 offset;
-    offset[0] = (dim == 0) ? dims[0] : 0;
-    offset[1] = (dim == 1) ? dims[1] : 0;
-    offset[2] = (dim == 2) ? dims[2] : 0;
-    offset[3] = (dim == 3) ? dims[3] : 0;
-    return offset;
-}
-
 template<typename T>
-Array<T> join(const int dim, const Array<T> &first, const Array<T> &second) {
+Array<T> join(const int jdim, const Array<T> &first, const Array<T> &second) {
     // All dimensions except join dimension must be equal
     // Compute output dims
-    dim4 odims;
-    dim4 fdims = first.dims();
-    dim4 sdims = second.dims();
-
-    for (int i = 0; i < 4; i++) {
-        if (i == dim) {
-            odims[i] = fdims[i] + sdims[i];
-        } else {
-            odims[i] = fdims[i];
-        }
-    }
+    dim4 odims(first.dims());
+    odims.dims[jdim] += second.dims().dims[jdim];
 
     Array<T> out = createEmptyArray<T>(odims);
-
-    dim4 zero(0, 0, 0, 0);
-
-    kernel::join<T>(out, first, dim, zero);
-    kernel::join<T>(out, second, dim, calcOffset(fdims, dim));
+    kernel::join<T>(out, jdim, first, second);
 
     return out;
 }
 
 template<typename T>
-void join_wrapper(const int dim, Array<T> &out,
-                  const vector<Array<T>> &inputs) {
-    dim4 zero(0, 0, 0, 0);
-    dim4 d = zero;
-
-    kernel::join<T>(out, inputs[0], dim, zero);
-    for (size_t i = 1; i < inputs.size(); i++) {
-        d += inputs[i - 1].dims();
-        kernel::join<T>(out, inputs[i], dim, calcOffset(d, dim));
-    }
-}
-
-template<typename T>
-Array<T> join(const int dim, const vector<Array<T>> &inputs) {
+Array<T> join(const int jdim, const vector<Array<T>> &inputs) {
     // All dimensions except join dimension must be equal
     // Compute output dims
-    dim4 odims;
-    const dim_t n_arrays = inputs.size();
-    vector<dim4> idims(n_arrays);
+    dim4 odims(inputs[0].dims());
+    for (size_t i = 1, size = inputs.size(); i < size; ++i)
+        odims.dims[jdim] += inputs[i].dims().dims[jdim];
 
-    dim_t dim_size = 0;
-    for (size_t i = 0; i < idims.size(); i++) {
-        idims[i] = inputs[i].dims();
-        dim_size += idims[i][dim];
-    }
-
-    for (int i = 0; i < 4; i++) {
-        if (i == dim) {
-            odims[i] = dim_size;
-        } else {
-            odims[i] = idims[0][i];
-        }
-    }
-
+    // Combine all evals into 1 preparation call
     vector<Array<T> *> input_ptrs(inputs.size());
     transform(
         begin(inputs), end(inputs), begin(input_ptrs),
         [](const Array<T> &input) { return const_cast<Array<T> *>(&input); });
     evalMultiple(input_ptrs);
-    vector<Param> inputParams(inputs.begin(), inputs.end());
-    Array<T> out = createEmptyArray<T>(odims);
 
-    join_wrapper<T>(dim, out, inputs);
+    Array<T> out = createEmptyArray<T>(odims);
+    vector<Param> ins(begin(inputs), end(inputs));
+    kernel::join<T>(out, jdim, ins);
     return out;
 }
 
-#define INSTANTIATE(T)                                              \
-    template Array<T> join<T>(const int dim, const Array<T> &first, \
+#define INSTANTIATE(T)                                               \
+    template Array<T> join<T>(const int jdim, const Array<T> &first, \
                               const Array<T> &second);
 
 INSTANTIATE(float)
@@ -126,7 +78,7 @@ INSTANTIATE(half)
 #undef INSTANTIATE
 
 #define INSTANTIATE(T) \
-    template Array<T> join<T>(const int dim, const vector<Array<T>> &inputs);
+    template Array<T> join<T>(const int jdim, const vector<Array<T>> &inputs);
 
 INSTANTIATE(float)
 INSTANTIATE(double)

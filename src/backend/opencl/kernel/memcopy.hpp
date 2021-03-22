@@ -22,102 +22,205 @@
 #include <string>
 #include <vector>
 
+using std::string;
+using std::vector;
+
 namespace opencl {
 namespace kernel {
 typedef struct {
-    dim_t dim[4];
+    int dims[4];
 } dims_t;
 
-constexpr uint DIM0 = 32;
-constexpr uint DIM1 = 8;
-
 template<typename T>
-void memcopy(cl::Buffer out, const dim_t *ostrides, const cl::Buffer in,
-             const dim_t *idims, const dim_t *istrides, int offset,
-             uint ndims) {
-    std::vector<TemplateArg> targs = {
-        TemplateTypename<T>(),
-    };
-    std::vector<std::string> options = {
-        DefineKeyValue(T, dtype_traits<T>::getName()),
-    };
-    options.emplace_back(getTypeBuildDefinition<T>());
+void memcopy(const cl::Buffer &b_out, const dim4 &ostrides,
+             const cl::Buffer &b_in, const dim4 &idims, const dim4 &istrides,
+             const dim_t ioffset, const dim_t indims, const dim_t ooffset = 0) {
+    dims_t idims_{
+        static_cast<int>(idims.dims[0]), static_cast<int>(idims.dims[1]),
+        static_cast<int>(idims.dims[2]), static_cast<int>(idims.dims[3])};
+    dims_t istrides_{
+        static_cast<int>(istrides.dims[0]), static_cast<int>(istrides.dims[1]),
+        static_cast<int>(istrides.dims[2]), static_cast<int>(istrides.dims[3])};
+    dims_t ostrides_{
+        static_cast<int>(ostrides.dims[0]), static_cast<int>(ostrides.dims[1]),
+        static_cast<int>(ostrides.dims[2]), static_cast<int>(ostrides.dims[3])};
+    int indims_ = static_cast<int>(indims);
 
-    auto memCopy =
-        common::getKernel("memCopy", {memcopy_cl_src}, targs, options);
-
-    dims_t _ostrides = {{ostrides[0], ostrides[1], ostrides[2], ostrides[3]}};
-    dims_t _istrides = {{istrides[0], istrides[1], istrides[2], istrides[3]}};
-    dims_t _idims    = {{idims[0], idims[1], idims[2], idims[3]}};
-
-    size_t local_size[2] = {DIM0, DIM1};
-    if (ndims == 1) {
-        local_size[0] *= local_size[1];
-        local_size[1] = 1;
+    bool isLinear = true;
+    int elements  = (indims_ == 0) ? 0 : 1;
+    for (int dim = 0; dim < indims_; ++dim) {
+        isLinear &= (elements == istrides_.dims[dim]) &
+                    (elements == ostrides_.dims[dim]);
+        elements *= idims_.dims[dim];
     }
+    if (elements > 0) {
+        if (isLinear) {
+            // Both input and output arrays are linear
+            getQueue().enqueueCopyBuffer(
+                b_in, b_out, ioffset * sizeof(T), ooffset * sizeof(T),
+                elements * sizeof(T), nullptr, nullptr);
+        } else {
+            const vector<TemplateArg> targs = {
+                TemplateTypename<T>(),
+            };
+            const vector<string> options = {
+                DefineKeyValue(T, dtype_traits<T>::getName()),
+                {getTypeBuildDefinition<T>()},
+            };
+            auto memCopy =
+                common::getKernel("memCopy", {memcopy_cl_src}, targs, options);
 
-    int groups_0 = divup(idims[0], local_size[0]);
-    int groups_1 = divup(idims[1], local_size[1]);
-
-    cl::NDRange local(local_size[0], local_size[1]);
-    cl::NDRange global(groups_0 * idims[2] * local_size[0],
-                       groups_1 * idims[3] * local_size[1]);
-
-    memCopy(cl::EnqueueArgs(getQueue(), global, local), out, _ostrides, in,
-            _idims, _istrides, offset, groups_0, groups_1);
-    CL_DEBUG_FINISH(getQueue());
+            for (int c = 0; c < indims_; ++c) {
+                // Eliminate the columns with 1, so that we have more
+                // appropriate dimensions in the local & global parameters
+                if (idims_.dims[c] == 1) {
+                    for (int i = c; i < indims_ - 1; ++i) {
+                        idims_.dims[i]    = idims_.dims[i + 1];
+                        istrides_.dims[i] = istrides_.dims[i + 1];
+                        ostrides_.dims[i] = ostrides_.dims[i + 1];
+                    }
+                    --indims_;
+                    idims_.dims[indims_] = 1;
+                    --c;  // Redo this column, since it is eliminated now!!
+                }
+            }
+            // Increase work inside each thread (if last dim is free and a
+            // minimum threads remain)
+            if (elements >= 2048 * 2 && indims_ != AF_MAX_DIMS &&
+                indims_ != 0) {
+                for (int i : {3, 4, 5, 7, 11, 2}) {
+                    if (elements >= 2048 * i &&
+                        (idims_.dims[indims_ - 1] % i) == 0) {
+                        idims_.dims[indims_ - 1] /= i;
+                        idims_.dims[AF_MAX_DIMS - 1] = i;
+                        for (int c = indims_; c < AF_MAX_DIMS; ++c) {
+                            istrides_.dims[c] =
+                                idims_.dims[c - 1] * istrides_.dims[c - 1];
+                            ostrides_.dims[c] =
+                                idims_.dims[c - 1] * ostrides_.dims[c - 1];
+                        }
+                        indims_ = AF_MAX_DIMS;
+                        // Once is sufficient
+                        break;
+                    }
+                }
+            }
+            // This kernel is memory bound, so focus on caching (dim0+++)
+            const int dim0 = (idims_.dims[0] <= 128) ? 128 : 256;
+            const int dim1 = (dim0 == 256) || (idims_.dims[1] & 0x1) ? 1 : 2;
+            const int dim2 =
+                (dim0 * dim1 == 256) || (idims_.dims[2] & 0x1) ? 1 : 2;
+            const cl::NDRange local(dim0, dim1, dim2);
+            const cl::NDRange global(dim0 * divup(idims_.dims[0], dim0),
+                                     dim1 * divup(idims_.dims[1], dim1),
+                                     dim2 * divup(idims_.dims[2], dim2));
+            memCopy(cl::EnqueueArgs(getQueue(), global, local), b_out,
+                    ostrides_, static_cast<unsigned>(ooffset), b_in, idims_,
+                    istrides_, static_cast<unsigned>(ioffset));
+            CL_DEBUG_FINISH(getQueue());
+        }
+    }
 }
 
 template<typename inType, typename outType>
-void copy(Param dst, const Param src, const int ndims,
+void copy(const Param out, const Param in, const dim_t ondims,
           const outType default_value, const double factor,
           const bool same_dims) {
-    using std::string;
+    dims_t idims_{
+        static_cast<int>(in.info.dims[0]), static_cast<int>(in.info.dims[1]),
+        static_cast<int>(in.info.dims[2]), static_cast<int>(in.info.dims[3])};
+    dims_t istrides_{static_cast<int>(in.info.strides[0]),
+                     static_cast<int>(in.info.strides[1]),
+                     static_cast<int>(in.info.strides[2]),
+                     static_cast<int>(in.info.strides[3])};
+    dims_t odims_{
+        static_cast<int>(out.info.dims[0]), static_cast<int>(out.info.dims[1]),
+        static_cast<int>(out.info.dims[2]), static_cast<int>(out.info.dims[3])};
+    dims_t ostrides_{static_cast<int>(out.info.strides[0]),
+                     static_cast<int>(out.info.strides[1]),
+                     static_cast<int>(out.info.strides[2]),
+                     static_cast<int>(out.info.strides[3])};
+    int ondims_  = static_cast<int>(ondims);
+    int elements = (ondims_ == 0) ? 0 : 1;
+    for (int dim = 0; dim < ondims_; ++dim) elements *= odims_.dims[dim];
+    if (elements > 0) {
+        for (int c = 0; c < ondims_; ++c) {
+            // Eliminate the columns with 1, so that we have more
+            // appropriate dimensions in the local & global parameters
+            if (odims_.dims[c] == 1) {
+                for (int i = c; i < ondims_ - 1; ++i) {
+                    odims_.dims[i]    = odims_.dims[i + 1];
+                    ostrides_.dims[i] = ostrides_.dims[i + 1];
+                    idims_.dims[i]    = idims_.dims[i + 1];
+                    istrides_.dims[i] = istrides_.dims[i + 1];
+                }
+                --ondims_;
+                odims_.dims[ondims_] = 1;
+                idims_.dims[ondims_] = 1;
+                --c;  // Redo this column, since it is eliminated now!!
+            }
+        }
+        // This kernel is memory bound, so focus on caching (dim0+++)
+        const int dim0 = (odims_.dims[0] <= 128) ? 128 : 256;
+        const int dim1 = (dim0 == 256) || (odims_.dims[1] & 0x1) ? 1 : 2;
+        const int dim2 = (dim0 * dim1 == 256) || (odims_.dims[2] & 0x1) ? 1 : 2;
+        const cl::NDRange local(dim0, dim1, dim2);
+        const cl::NDRange global(dim0 * divup(odims_.dims[0], dim0),
+                                 dim1 * divup(odims_.dims[1], dim1),
+                                 dim2 * divup(odims_.dims[2], dim2));
 
-    std::vector<TemplateArg> targs = {
-        TemplateTypename<inType>(),
-        TemplateTypename<outType>(),
-        TemplateArg(same_dims),
-    };
-    std::vector<string> options = {
-        DefineKeyValue(inType, dtype_traits<inType>::getName()),
-        DefineKeyValue(outType, dtype_traits<outType>::getName()),
-        string(" -D inType_" + string(dtype_traits<inType>::getName())),
-        string(" -D outType_" + string(dtype_traits<outType>::getName())),
-        DefineKeyValue(SAME_DIMS, static_cast<int>(same_dims)),
-    };
-    options.emplace_back(getTypeBuildDefinition<inType, outType>());
-
-    auto copy = common::getKernel("reshapeCopy", {copy_cl_src}, targs, options);
-
-    cl::NDRange local(DIM0, DIM1);
-    size_t local_size[] = {DIM0, DIM1};
-
-    local_size[0] *= local_size[1];
-    if (ndims == 1) { local_size[1] = 1; }
-
-    int blk_x = divup(dst.info.dims[0], local_size[0]);
-    int blk_y = divup(dst.info.dims[1], local_size[1]);
-
-    cl::NDRange global(blk_x * dst.info.dims[2] * DIM0,
-                       blk_y * dst.info.dims[3] * DIM1);
-
-    dims_t trgt_dims;
-    if (same_dims) {
-        trgt_dims = {{dst.info.dims[0], dst.info.dims[1], dst.info.dims[2],
-                      dst.info.dims[3]}};
-    } else {
-        dim_t trgt_l = std::min(dst.info.dims[3], src.info.dims[3]);
-        dim_t trgt_k = std::min(dst.info.dims[2], src.info.dims[2]);
-        dim_t trgt_j = std::min(dst.info.dims[1], src.info.dims[1]);
-        dim_t trgt_i = std::min(dst.info.dims[0], src.info.dims[0]);
-        trgt_dims    = {{trgt_i, trgt_j, trgt_k, trgt_l}};
+        if (std::is_same<inType, double>::value ||
+            std::is_same<inType, cdouble>::value) {
+            // Only scale in double precision when the input array is also
+            // in double or cdouble, otherwise it is a waste of GPU time
+            const vector<TemplateArg> targs = {
+                TemplateTypename<inType>(),
+                TemplateTypename<outType>(),
+                TemplateArg(same_dims),
+                TemplateTypename<double>(),
+            };
+            const vector<string> options = {
+                DefineKeyValue(inType, dtype_traits<inType>::getName()),
+                DefineKeyValue(outType, dtype_traits<outType>::getName()),
+                string(" -D inType_" + string(dtype_traits<inType>::getName())),
+                string(" -D outType_" +
+                       string(dtype_traits<outType>::getName())),
+                DefineKeyValue(SAME_DIMS, static_cast<int>(same_dims)),
+                string(" -D factorType=double"),
+                {getTypeBuildDefinition<inType, outType>()},
+            };
+            auto copy =
+                common::getKernel("reshapeCopy", {copy_cl_src}, targs, options);
+            copy(cl::EnqueueArgs(getQueue(), global, local), *out.data, odims_,
+                 ostrides_, static_cast<uint>(out.info.offset), *in.data,
+                 idims_, istrides_, static_cast<uint>(in.info.offset),
+                 default_value, static_cast<double>(factor));
+        } else {
+            const vector<TemplateArg> targs = {
+                TemplateTypename<inType>(),
+                TemplateTypename<outType>(),
+                TemplateArg(same_dims),
+                TemplateTypename<float>(),
+            };
+            const vector<string> options = {
+                DefineKeyValue(inType, dtype_traits<inType>::getName()),
+                DefineKeyValue(outType, dtype_traits<outType>::getName()),
+                string(" -D inType_" + string(dtype_traits<inType>::getName())),
+                string(" -D outType_" +
+                       string(dtype_traits<outType>::getName())),
+                DefineKeyValue(SAME_DIMS, static_cast<int>(same_dims)),
+                string(" -D factorType=float"),
+                {getTypeBuildDefinition<inType, outType>()},
+            };
+            auto copy =
+                common::getKernel("reshapeCopy", {copy_cl_src}, targs, options);
+            copy(cl::EnqueueArgs(getQueue(), global, local), *out.data, odims_,
+                 ostrides_, static_cast<uint>(out.info.offset), *in.data,
+                 idims_, istrides_, static_cast<uint>(in.info.offset),
+                 default_value, static_cast<float>(factor));
+        }
+        CL_DEBUG_FINISH(getQueue());
     }
-
-    copy(cl::EnqueueArgs(getQueue(), global, local), *dst.data, dst.info,
-         *src.data, src.info, default_value, (float)factor, trgt_dims, blk_x,
-         blk_y);
-    CL_DEBUG_FINISH(getQueue());
 }
 }  // namespace kernel
 }  // namespace opencl

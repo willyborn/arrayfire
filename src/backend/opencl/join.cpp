@@ -50,8 +50,7 @@ Array<T> join(const int jdim, const vector<Array<T>> &inputs) {
     for (auto &iArray : inputs) odims.dims[jdim] += iArray.dims().dims[jdim];
 
     // Combine all evals into 1 preparation call
-    vector<Array<T> *> input_ptrs;
-    input_ptrs.reserve(inputs.size());
+    vector<Array<T> *> input_ptrs(inputs.size());
     transform(
         begin(inputs), end(inputs), begin(input_ptrs),
         [](const Array<T> &input) { return const_cast<Array<T> *>(&input); });

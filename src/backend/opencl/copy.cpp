@@ -22,47 +22,19 @@ namespace opencl {
 
 template<typename T>
 void copyData(T *data, const Array<T> &A) {
-    if (A.elements() == 0) { return; }
-
-    // FIXME: Merge this with copyArray
-    A.eval();
-
-    dim_t offset = 0;
-    cl::Buffer buf;
-    Array<T> out = A;
-
-    if (A.isLinear() ||  // No offsets, No strides
-        A.ndims() == 1   // Simple offset, no strides.
-    ) {
-        buf    = *A.get();
-        offset = A.getOffset();
-    } else {
-        // FIXME: Think about implementing eval
-        out    = copyArray(A);
-        buf    = *out.get();
-        offset = 0;
+    if (A.elements() > 0) {
+        Array<T> out = A.isOwner() && A.isLinear() ? A : copyArray(A);
+        // out is now guaranteed linear
+        getQueue().enqueueReadBuffer(*out.get(), CL_TRUE,
+                                     sizeof(T) * out.getOffset(),
+                                     sizeof(T) * out.elements(), data);
     }
-
-    // FIXME: Add checks
-    getQueue().enqueueReadBuffer(buf, CL_TRUE, sizeof(T) * offset,
-                                 sizeof(T) * A.elements(), data);
 }
 
 template<typename T>
 Array<T> copyArray(const Array<T> &A) {
     Array<T> out = createEmptyArray<T>(A.dims());
-    if (A.elements() == 0) { return out; }
-
-    dim_t offset = A.getOffset();
-    if (A.isLinear()) {
-        // FIXME: Add checks
-        getQueue().enqueueCopyBuffer(*A.get(), *out.get(), sizeof(T) * offset,
-                                     0, A.elements() * sizeof(T));
-    } else {
-        kernel::memcopy<T>(*out.get(), out.strides().get(), *A.get(),
-                           A.dims().get(), A.strides().get(), offset,
-                           (uint)A.ndims());
-    }
+    kernel::memcopy<T>(out, A, A.ndims());
     return out;
 }
 
@@ -75,23 +47,19 @@ template<typename inType, typename outType>
 struct copyWrapper {
     void operator()(Array<outType> &out, Array<inType> const &in) {
         kernel::copy<inType, outType>(out, in, in.ndims(), scalar<outType>(0),
-                                      1, in.dims() == out.dims());
+                                      1.0, in.dims() == out.dims());
     }
 };
 
 template<typename T>
 struct copyWrapper<T, T> {
     void operator()(Array<T> &out, Array<T> const &in) {
-        if (out.isLinear() && in.isLinear() &&
-            out.elements() == in.elements()) {
-            dim_t in_offset  = in.getOffset() * sizeof(T);
-            dim_t out_offset = out.getOffset() * sizeof(T);
-
-            getQueue().enqueueCopyBuffer(*in.get(), *out.get(), in_offset,
-                                         out_offset, in.elements() * sizeof(T));
+        if (in.dims() == out.dims()) {
+            kernel::memcopy<T>(out, in, in.ndims());
         } else {
-            kernel::copy<T, T>(out, in, in.ndims(), scalar<T>(0), 1,
-                               in.dims() == out.dims());
+            // Needed to fill up out elements which are not covered by in
+            // elements with the default value
+            kernel::copy<T, T>(out, in, in.ndims(), scalar<T>(0), 1.0, false);
         }
     }
 };

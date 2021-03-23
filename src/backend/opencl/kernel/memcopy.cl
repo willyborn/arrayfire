@@ -8,32 +8,37 @@
  ********************************************************/
 
 typedef struct {
-    dim_t dim[4];
+    int dims[4];
 } dims_t;
 
-kernel void memCopy(global T *out, dims_t ostrides, global const T *in,
-                    dims_t idims, dims_t istrides, int offset, int groups_0,
-                    int groups_1) {
-    const int lid0 = get_local_id(0);
-    const int lid1 = get_local_id(1);
+kernel void memCopy(global T *d_out, const dims_t ostrides, const uint ooffset,
+                    global const T *d_in, const dims_t idims,
+                    const dims_t istrides, const uint ioffset) {
+    const int g0 = get_global_id(0);  // dim[0]
+    const int g1 = get_global_id(1);  // dim[1]
+    const int g2 = get_global_id(2);  // dim[2]
+                                      // dim[3] is through loop
 
-    const int id2        = get_group_id(0) / groups_0;
-    const int id3        = get_group_id(1) / groups_1;
-    const int group_id_0 = get_group_id(0) - groups_0 * id2;
-    const int group_id_1 = get_group_id(1) - groups_1 * id3;
-    const int id0        = group_id_0 * get_local_size(0) + lid0;
-    const int id1        = group_id_1 * get_local_size(1) + lid1;
-
-    in += offset;
-
-    // FIXME: Do more work per work group
-    out +=
-        id3 * ostrides.dim[3] + id2 * ostrides.dim[2] + id1 * ostrides.dim[1];
-    in += id3 * istrides.dim[3] + id2 * istrides.dim[2] + id1 * istrides.dim[1];
-
-    int istride0 = istrides.dim[0];
-    if (id0 < idims.dim[0] && id1 < idims.dim[1] && id2 < idims.dim[2] &&
-        id3 < idims.dim[3]) {
-        out[id0] = in[id0 * istride0];
+    const bool valid =
+        (g0 < idims.dims[0]) && (g1 < idims.dims[1]) && (g2 < idims.dims[2]);
+    if (valid) {
+        int idx_in = ioffset + g0 * istrides.dims[0] + g1 * istrides.dims[1] +
+                     g2 * istrides.dims[2];
+        T val       = d_in[idx_in];
+        int idx_out = ooffset + g0 * ostrides.dims[0] + g1 * ostrides.dims[1] +
+                      g2 * ostrides.dims[2];
+        d_out[idx_out]      = val;
+        const int istrides3 = istrides.dims[3];
+        const int ostrides3 = ostrides.dims[3];
+        const int idims3    = idims.dims[3];
+        // g3==0 is performed above
+        int g3 = 1;
+        while (g3 < idims3) {
+            idx_in += istrides3;
+            val = d_in[idx_in];
+            idx_out += ostrides3;
+            d_out[idx_out] = val;
+            ++g3;
+        }
     }
 }

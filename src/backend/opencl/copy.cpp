@@ -22,46 +22,29 @@ namespace opencl {
 
 template<typename T>
 void copyData(T *data, const Array<T> &A) {
-    if (A.elements() == 0) { return; }
-
-    // FIXME: Merge this with copyArray
-    A.eval();
-
-    dim_t offset = 0;
-    cl::Buffer buf;
-    Array<T> out = A;
-
-    if (A.isLinear() ||  // No offsets, No strides
-        A.ndims() == 1   // Simple offset, no strides.
-    ) {
-        buf    = *A.get();
-        offset = A.getOffset();
-    } else {
-        // FIXME: Think about implementing eval
-        out    = copyArray(A);
-        buf    = *out.get();
-        offset = 0;
+    if (A.elements() > 0) {
+        Array<T> out = A.isOwner() && A.isLinear() ? A : copyArray(A);
+        // out is now guaranteed linear
+        getQueue().enqueueReadBuffer(*out.get(), CL_TRUE,
+                                     sizeof(T) * out.getOffset(),
+                                     sizeof(T) * out.elements(), data);
     }
-
-    // FIXME: Add checks
-    getQueue().enqueueReadBuffer(buf, CL_TRUE, sizeof(T) * offset,
-                                 sizeof(T) * A.elements(), data);
 }
 
 template<typename T>
 Array<T> copyArray(const Array<T> &A) {
     Array<T> out = createEmptyArray<T>(A.dims());
-    if (A.elements() == 0) { return out; }
-
-    dim_t offset = A.getOffset();
-    if (A.isLinear()) {
-        // FIXME: Add checks
-        getQueue().enqueueCopyBuffer(*A.get(), *out.get(), sizeof(T) * offset,
-                                     0, A.elements() * sizeof(T));
+    if (A.isReady()) {
+        kernel::memcopy<T>(*out.get(), out.strides(), *A.get(), A.dims(),
+                           A.strides(), A.getOffset(), A.ndims());
     } else {
-        kernel::memcopy<T>(*out.get(), out.strides().get(), *A.get(),
-                           A.dims().get(), A.strides().get(), offset,
-                           (uint)A.ndims());
+        Param info = {out.get(),
+                      {{A.dims().dims[0], A.dims().dims[1], A.dims().dims[2],
+                        A.dims().dims[3]},
+                       {out.strides().dims[0], out.strides().dims[1],
+                        out.strides().dims[2], out.strides().dims[3]},
+                       0}};
+        evalNodes(info, A.getNode().get());
     }
     return out;
 }
@@ -75,23 +58,31 @@ template<typename inType, typename outType>
 struct copyWrapper {
     void operator()(Array<outType> &out, Array<inType> const &in) {
         kernel::copy<inType, outType>(out, in, in.ndims(), scalar<outType>(0),
-                                      1, in.dims() == out.dims());
+                                      1.0, in.dims() == out.dims());
     }
 };
 
 template<typename T>
 struct copyWrapper<T, T> {
     void operator()(Array<T> &out, Array<T> const &in) {
-        if (out.isLinear() && in.isLinear() &&
-            out.elements() == in.elements()) {
-            dim_t in_offset  = in.getOffset() * sizeof(T);
-            dim_t out_offset = out.getOffset() * sizeof(T);
-
-            getQueue().enqueueCopyBuffer(*in.get(), *out.get(), in_offset,
-                                         out_offset, in.elements() * sizeof(T));
+        if (in.dims() == out.dims()) {
+            if (in.isReady()) {
+                kernel::memcopy<T>(*out.get(), out.strides(), *in.get(),
+                                   in.dims(), in.strides(), in.getOffset(),
+                                   in.ndims(), out.getOffset());
+            } else {
+                Param info = {out.get(),
+                              {{in.dims().dims[0], in.dims().dims[1],
+                                in.dims().dims[2], in.dims().dims[3]},
+                               {out.strides().dims[0], out.strides().dims[1],
+                                out.strides().dims[2], out.strides().dims[3]},
+                               out.getOffset()}};
+                evalNodes(info, in.getNode().get());
+            }
         } else {
-            kernel::copy<T, T>(out, in, in.ndims(), scalar<T>(0), 1,
-                               in.dims() == out.dims());
+            // Needed to fill up out elements which are not covered by in
+            // elements with the default value
+            kernel::copy<T, T>(out, in, in.ndims(), scalar<T>(0), 1.0, false);
         }
     }
 };

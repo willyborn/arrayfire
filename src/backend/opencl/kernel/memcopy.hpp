@@ -31,6 +31,86 @@ typedef struct {
     int dims[4];
 } dims_t;
 
+// Push all linear columns to the front, to improve occupancy
+// In case of copy operation, input & output parameters needs to be provided!!
+// main dims: mdims, mstrides, mndims
+// optional dims: odims, ostrides
+// ALL parameters will be updated!!
+template<bool reshape = false>
+void serializeArray(int mdims[4], int mstrides[4], int &mndims, int ostrides[4],
+                    int odims[4] = nullptr) {
+    if (reshape) assert(odims != nullptr);
+    for (int c = 0; c < mndims - 1; c++) {
+        if (mdims[c] == 1) {
+            // Columns with 1 can always be removed.
+            for (int i = c; i < AF_MAX_DIMS - 1; ++i) {
+                mdims[i] = mdims[i + 1];
+                if (reshape) odims[i] = odims[i + 1];
+                mstrides[i] = mstrides[i + 1];
+                ostrides[i] = ostrides[i + 1];
+            }
+            --mndims;
+            mdims[mndims] = 1;
+            if (reshape) odims[mndims] = 1;
+            mstrides[AF_MAX_DIMS - 1] =
+                mdims[AF_MAX_DIMS - 2] * mstrides[AF_MAX_DIMS - 2];
+            ostrides[AF_MAX_DIMS - 1] =
+                mdims[AF_MAX_DIMS - 2] * ostrides[AF_MAX_DIMS - 2];
+            --c;  // Redo this column, since it is removed now
+            //} else if (!reshape && mdims[c] * mstrides[c] == mstrides[c + 1]
+            //&&
+            //           mdims[c] * ostrides[c] == ostrides[c + 1]) {
+        } else if (mdims[c] * mstrides[c] == mstrides[c + 1] &&  // NEW
+                   mdims[c] * ostrides[c] == ostrides[c + 1]) {  // NEW
+            // Combine columns, since they are linear
+            // This will increase the dimension of the resulting column,
+            // given more opportunities for kernel optimization
+            mdims[c] *= mdims[c + 1];
+            if (reshape) odims[c] *= odims[c + 1];
+            for (int i = c + 1; i < AF_MAX_DIMS - 1; ++i) {
+                mdims[i] = mdims[i + 1];
+                if (reshape) odims[i] = odims[i + 1];
+                mstrides[i] = mstrides[i + 1];
+                ostrides[i] = ostrides[i + 1];
+            }
+            --mndims;
+            mdims[mndims] = 1;
+            if (reshape) odims[mndims] = 1;  // NEW
+            --c;  // Redo this colum, since it is removed now
+        }
+    }
+}
+
+// To increase the workload inside a kernel, we move a part of the ndims
+// dimension to the last one.  Since this not covered by WG or warp, this is
+// always executed as an internal loop.
+// In case of copy operation, input & output parameters needs to be provided!!
+// main dims: mdims, mstrides, mndims
+// optional dims: odims, ostrides
+// ALL parameters will be updated!!
+void inline increaseWorkload(int elements, int mdims[4], int mstrides[4],
+                             int &mndims, int ostrides[4]) {
+    if (elements >= 8192 * 2 && mndims != AF_MAX_DIMS && mndims != 0) {
+        // Start only increasing the workload, when all available threads are
+        // occupied.
+
+        // list is sorted according to performance improvement
+        // 3x looping is faster than 4x, 2x remains faster than no looping
+        for (int i : {3, 4, 5, 7, 11, 2}) {
+            if (elements >= 8192 * i && (mdims[mndims - 1] % i) == 0) {
+                mdims[mndims - 1] /= i;
+                mdims[AF_MAX_DIMS - 1] = i;
+                for (int c = mndims; c < AF_MAX_DIMS; ++c) {
+                    mstrides[c] = mdims[c - 1] * mstrides[c - 1];
+                    ostrides[c] = mdims[c - 1] * ostrides[c - 1];
+                }
+                mndims = AF_MAX_DIMS;
+                break;  // Perform this operation only once.
+            }
+        }
+    }
+}
+
 template<typename T>
 void memcopy(const cl::Buffer &b_out, const dim4 &ostrides,
              const cl::Buffer &b_in, const dim4 &idims, const dim4 &istrides,
@@ -70,69 +150,47 @@ void memcopy(const cl::Buffer &b_out, const dim4 &ostrides,
             auto memCopy =
                 common::getKernel("memCopy", {memcopy_cl_src}, targs, options);
 
-            for (int c = 0; c < indims_; ++c) {
-                // Eliminate the columns with 1, so that we have more
-                // appropriate dimensions in the local & global parameters
-                if (idims_.dims[c] == 1) {
-                    for (int i = c; i < indims_ - 1; ++i) {
-                        idims_.dims[i]    = idims_.dims[i + 1];
-                        istrides_.dims[i] = istrides_.dims[i + 1];
-                        ostrides_.dims[i] = ostrides_.dims[i + 1];
-                    }
-                    --indims_;
-                    idims_.dims[indims_] = 1;
-                    --c;  // Redo this column, since it is eliminated now!!
-                }
-            }
-            // Increase work inside each thread (if last dim is free and a
-            // minimum threads remain)
-            if (elements >= 2048 * 2 && indims_ != AF_MAX_DIMS &&
-                indims_ != 0) {
-                for (int i : {3, 4, 5, 7, 11, 2}) {
-                    if (elements >= 2048 * i &&
-                        (idims_.dims[indims_ - 1] % i) == 0) {
-                        idims_.dims[indims_ - 1] /= i;
-                        idims_.dims[AF_MAX_DIMS - 1] = i;
-                        for (int c = indims_; c < AF_MAX_DIMS; ++c) {
-                            istrides_.dims[c] =
-                                idims_.dims[c - 1] * istrides_.dims[c - 1];
-                            ostrides_.dims[c] =
-                                idims_.dims[c - 1] * ostrides_.dims[c - 1];
-                        }
-                        indims_ = AF_MAX_DIMS;
-                        // Once is sufficient
-                        break;
-                    }
-                }
-            }
-            // This kernel is memory bound, so focus on caching (dim0+++)
-            const int dim0 = (idims_.dims[0] <= 128) ? 128 : 256;
-            const int dim1 = (dim0 == 256) || (idims_.dims[1] & 0x1) ? 1 : 2;
-            const int dim2 =
-                (dim0 * dim1 == 256) || (idims_.dims[2] & 0x1) ? 1 : 2;
-            const cl::NDRange local(dim0, dim1, dim2);
-            const cl::NDRange global(dim0 * divup(idims_.dims[0], dim0),
-                                     dim1 * divup(idims_.dims[1], dim1),
-                                     dim2 * divup(idims_.dims[2], dim2));
+            serializeArray(idims_.dims, istrides_.dims, indims_,
+                           ostrides_.dims);
+            increaseWorkload(elements, idims_.dims, istrides_.dims, indims_,
+                             ostrides_.dims);
+
+            const cl::NDRange local = bestBlockSize<cl::NDRange>(idims_.dims);
+            const cl::NDRange global(
+                local[0] * divup(idims_.dims[0], local[0]),
+                local[1] * divup(idims_.dims[1], local[1]),
+                local[2] * divup(idims_.dims[2], local[2]));
+            /*
+            printf("\n[%d,%d,%d,%d] :(%zd,%zd,%zd)|(%zd,%zd,%zd) occup:%zd%%",
+                   idims_.dims[0], idims_.dims[1], idims_.dims[2],
+                   idims_.dims[3], local[0], local[1], local[2], global[0],
+                   global[1], global[2],
+                   100 * (idims_.dims[0] * idims_.dims[1] * idims_.dims[2]) /
+                       (global[0] * global[1] * global[2]));
+                       */
             memCopy(cl::EnqueueArgs(getQueue(), global, local), b_out,
-                    ostrides_, static_cast<unsigned>(ooffset), b_in, idims_,
-                    istrides_, static_cast<unsigned>(ioffset));
+                    ostrides_, static_cast<int>(ooffset), b_in, idims_,
+                    istrides_, static_cast<int>(ioffset));
             CL_DEBUG_FINISH(getQueue());
         }
     }
 }
 
-typedef struct {
+class BufferPlus {
+   public:
     const cl::Buffer *data;
     const dim4 &idims;
     const dim4 &istrides;
     const dim_t ioffset;
     const dim_t ooffset;
-} RawArray;
+    BufferPlus(const cl::Buffer *d, const dim4 &id, const dim4 &is,
+               const dim_t io, const dim_t oo)
+        : data(d), idims(id), istrides(is), ioffset(io), ooffset(oo){};
+};
 
 template<typename T>
 void memcopyN(const cl::Buffer &b_out, const dim4 &ostrides,
-              const vector<RawArray> &ins) {
+              const vector<BufferPlus> &ins) {
     Kernel memCopy;
     bool loadKernel = true;
     for (auto &in : ins) {
@@ -168,6 +226,18 @@ void memcopyN(const cl::Buffer &b_out, const dim4 &ostrides,
                     in.ooffset * sizeof(T), elements * sizeof(T), nullptr,
                     nullptr);
             } else {
+                serializeArray(idims_.dims, istrides_.dims, indims_,
+                               ostrides_.dims);
+                increaseWorkload(elements, idims_.dims, istrides_.dims, indims_,
+                                 ostrides_.dims);
+
+                const cl::NDRange local =
+                    bestBlockSize<cl::NDRange>(idims_.dims);
+                const cl::NDRange global(
+                    local[0] * divup(idims_.dims[0], local[0]),
+                    local[1] * divup(idims_.dims[1], local[1]),
+                    local[2] * divup(idims_.dims[2], local[2]));
+
                 if (loadKernel) {
                     const vector<TemplateArg> targs = {
                         TemplateTypename<T>(),
@@ -180,56 +250,10 @@ void memcopyN(const cl::Buffer &b_out, const dim4 &ostrides,
                                                 targs, options);
                     loadKernel = false;
                 }
-                for (int c = 0; c < indims_; ++c) {
-                    // Eliminate the columns with 1, so that we have more
-                    // appropriate dimensions in the local & global parameters
-                    if (idims_.dims[c] == 1) {
-                        for (int i = c; i < indims_ - 1; ++i) {
-                            idims_.dims[i]    = idims_.dims[i + 1];
-                            istrides_.dims[i] = istrides_.dims[i + 1];
-                            ostrides_.dims[i] = ostrides_.dims[i + 1];
-                        }
-                        --indims_;
-                        idims_.dims[indims_] = 1;
-                        --c;  // Redo this column, since it is eliminated now!!
-                    }
-                }
-                // Increase work inside each thread (if last dim is free)
-                if (elements >= 2048 * 2 && indims_ != AF_MAX_DIMS &&
-                    indims_ != 0) {
-                    for (int i : {3, 4, 5, 7, 11, 2}) {
-                        if (elements >= 2048 * i &&
-                            (idims_.dims[indims_ - 1] % i) == 0) {
-                            idims_.dims[indims_ - 1] /= i;
-                            idims_.dims[AF_MAX_DIMS - 1] = i;
-                            for (int c = indims_; c < AF_MAX_DIMS; ++c) {
-                                // since we are after the ndims, the array is by
-                                // definition linear here
-                                istrides_.dims[c] =
-                                    idims_.dims[c - 1] * istrides_.dims[c - 1];
-                                ostrides_.dims[c] =
-                                    idims_.dims[c - 1] * ostrides_.dims[c - 1];
-                            }
-                            indims_ = AF_MAX_DIMS;
-                            // Once is sufficient
-                            break;
-                        }
-                    }
-                }
-                // This kernel is (cache) memory bound, so focus on caching
-                // (dim0+++) otherwise use everything thread available
-                const int dim0 = (idims_.dims[0] <= 128) ? 128 : 256;
-                const int dim1 =
-                    (dim0 == 256) || (idims_.dims[1] & 0x1) ? 1 : 2;
-                const int dim2 =
-                    (dim0 * dim1 == 256) || (idims_.dims[2] & 0x1) ? 1 : 2;
-                const cl::NDRange local(dim0, dim1, dim2);
-                const cl::NDRange global(dim0 * divup(idims_.dims[0], dim0),
-                                         dim1 * divup(idims_.dims[1], dim1),
-                                         dim2 * divup(idims_.dims[2], dim2));
+
                 memCopy(cl::EnqueueArgs(getQueue(), global, local), b_out,
-                        ostrides_, static_cast<unsigned>(in.ooffset), *in.data,
-                        idims_, istrides_, static_cast<unsigned>(in.ioffset));
+                        ostrides_, static_cast<int>(in.ooffset), *in.data,
+                        idims_, istrides_, static_cast<int>(in.ioffset));
                 CL_DEBUG_FINISH(getQueue());
             }
         }
@@ -237,7 +261,7 @@ void memcopyN(const cl::Buffer &b_out, const dim4 &ostrides,
 }
 
 template<typename inType, typename outType>
-void copy(const Param out, const Param in, const dim_t ondims,
+void copy(const Param out, const Param in, dim_t ondims,
           const outType default_value, const double factor,
           const bool same_dims) {
     dims_t idims_{
@@ -258,40 +282,22 @@ void copy(const Param out, const Param in, const dim_t ondims,
     int elements = (ondims_ == 0) ? 0 : 1;
     for (int dim = 0; dim < ondims_; ++dim) elements *= odims_.dims[dim];
     if (elements > 0) {
-        for (int c = 0; c < ondims_; ++c) {
-            // Eliminate the columns with 1, so that we have more
-            // appropriate dimensions in the local & global parameters
-            if (odims_.dims[c] == 1) {
-                for (int i = c; i < ondims_ - 1; ++i) {
-                    odims_.dims[i]    = odims_.dims[i + 1];
-                    ostrides_.dims[i] = ostrides_.dims[i + 1];
-                    idims_.dims[i]    = idims_.dims[i + 1];
-                    istrides_.dims[i] = istrides_.dims[i + 1];
-                }
-                --ondims_;
-                odims_.dims[ondims_] = 1;
-                idims_.dims[ondims_] = 1;
-                --c;  // Redo this column, since it is eliminated now!!
-            }
-        }
-        // This kernel is memory bound, so focus on caching (dim0+++)
-        const int dim0 = (odims_.dims[0] <= 128) ? 128 : 256;
-        const int dim1 = (dim0 == 256) || (odims_.dims[1] & 0x1) ? 1 : 2;
-        const int dim2 = (dim0 * dim1 == 256) || (odims_.dims[2] & 0x1) ? 1 : 2;
-        const cl::NDRange local(dim0, dim1, dim2);
-        const cl::NDRange global(dim0 * divup(odims_.dims[0], dim0),
-                                 dim1 * divup(odims_.dims[1], dim1),
-                                 dim2 * divup(odims_.dims[2], dim2));
+        serializeArray<true>(odims_.dims, ostrides_.dims, ondims_,
+                             istrides_.dims, idims_.dims);
+
+        const cl::NDRange local = bestBlockSize<cl::NDRange>(odims_.dims);
+        const cl::NDRange global(local[0] * divup(odims_.dims[0], local[0]),
+                                 local[1] * divup(odims_.dims[1], local[1]),
+                                 local[2] * divup(odims_.dims[2], local[2]));
 
         if (std::is_same<inType, double>::value ||
             std::is_same<inType, cdouble>::value) {
             // Only scale in double precision when the input array is also
             // in double or cdouble, otherwise it is a waste of GPU time
             const vector<TemplateArg> targs = {
-                TemplateTypename<inType>(),
-                TemplateTypename<outType>(),
-                TemplateArg(same_dims),
-                TemplateTypename<double>(),
+                TemplateTypename<inType>(), TemplateTypename<outType>(),
+                TemplateArg(same_dims),     TemplateTypename<double>(),
+                TemplateArg(factor != 1.0),
             };
             const vector<string> options = {
                 DefineKeyValue(inType, dtype_traits<inType>::getName()),
@@ -301,6 +307,7 @@ void copy(const Param out, const Param in, const dim_t ondims,
                        string(dtype_traits<outType>::getName())),
                 DefineKeyValue(SAME_DIMS, static_cast<int>(same_dims)),
                 string(" -D factorType=double"),
+                string((factor != 1.0) ? " -D FACTOR" : " -D NOFACTOR"),
                 {getTypeBuildDefinition<inType, outType>()},
             };
             auto copy =
@@ -311,10 +318,9 @@ void copy(const Param out, const Param in, const dim_t ondims,
                  default_value, static_cast<double>(factor));
         } else {
             const vector<TemplateArg> targs = {
-                TemplateTypename<inType>(),
-                TemplateTypename<outType>(),
-                TemplateArg(same_dims),
-                TemplateTypename<float>(),
+                TemplateTypename<inType>(), TemplateTypename<outType>(),
+                TemplateArg(same_dims),     TemplateTypename<float>(),
+                TemplateArg(factor != 1.0),
             };
             const vector<string> options = {
                 DefineKeyValue(inType, dtype_traits<inType>::getName()),
@@ -324,14 +330,15 @@ void copy(const Param out, const Param in, const dim_t ondims,
                        string(dtype_traits<outType>::getName())),
                 DefineKeyValue(SAME_DIMS, static_cast<int>(same_dims)),
                 string(" -D factorType=float"),
+                string((factor != 1.0) ? " -D FACTOR" : " -D NOFACTOR"),
                 {getTypeBuildDefinition<inType, outType>()},
             };
             auto copy =
                 common::getKernel("reshapeCopy", {copy_cl_src}, targs, options);
             copy(cl::EnqueueArgs(getQueue(), global, local), *out.data, odims_,
-                 ostrides_, static_cast<uint>(out.info.offset), *in.data,
-                 idims_, istrides_, static_cast<uint>(in.info.offset),
-                 default_value, static_cast<float>(factor));
+                 ostrides_, static_cast<int>(out.info.offset), *in.data, idims_,
+                 istrides_, static_cast<int>(in.info.offset), default_value,
+                 static_cast<float>(factor));
         }
         CL_DEBUG_FINISH(getQueue());
     }

@@ -33,34 +33,36 @@ Array<T> join(const int jdim, const Array<T> &first, const Array<T> &second) {
     odims.dims[jdim] += sdims.dims[jdim];
 
     Array<T> out = createEmptyArray<T>(odims);
-    vector<kernel::RawArray> ins;
+    vector<kernel::BufferPlus> ins;
     ins.reserve(2);
 
     if (first.isReady()) {
-        ins.push_back(
-            {first.get(), fdims, first.strides(), first.getOffset(), 0});
+        ins.emplace_back(first.getData().get(), fdims, first.strides(),
+                         first.getOffset(), 0);
     } else {
-        Param info = {
-            out.get(),
-            {{fdims.dims[0], fdims.dims[1], fdims.dims[2], fdims.dims[3]},
-             {out.strides().dims[0], out.strides().dims[1],
-              out.strides().dims[2], out.strides().dims[3]},
-             0}};
-        evalNodes(info, first.getNode().get());
+        vector<Param> outputs{
+            {out.getData().get(),
+             {{fdims.dims[0], fdims.dims[1], fdims.dims[2], fdims.dims[3]},
+              {out.strides().dims[0], out.strides().dims[1],
+               out.strides().dims[2], out.strides().dims[3]},
+              0}}};
+        const vector<common::Node *> nodes{first.getNode().get()};
+        evalNodes(outputs, nodes);
     }
 
     if (second.isReady()) {
-        ins.push_back({second.get(), sdims, second.strides(),
-                       second.getOffset(),
-                       fdims.dims[jdim] * out.strides().dims[jdim]});
+        ins.emplace_back(second.getData().get(), sdims, second.strides(),
+                         second.getOffset(),
+                         fdims.dims[jdim] * out.strides().dims[jdim]);
     } else {
-        Param info = {
-            out.get(),
-            {{sdims.dims[0], sdims.dims[1], sdims.dims[2], sdims.dims[3]},
-             {out.strides().dims[0], out.strides().dims[1],
-              out.strides().dims[2], out.strides().dims[3]},
-             fdims.dims[jdim] * out.strides().dims[jdim]}};
-        evalNodes(info, second.getNode().get());
+        vector<Param> outputs{
+            {out.getData().get(),
+             {{sdims.dims[0], sdims.dims[1], sdims.dims[2], sdims.dims[3]},
+              {out.strides().dims[0], out.strides().dims[1],
+               out.strides().dims[2], out.strides().dims[3]},
+              fdims.dims[jdim] * out.strides().dims[jdim]}}};
+        const vector<common::Node *> nodes{second.getNode().get()};
+        evalNodes(outputs, nodes);
     }
 
     if (ins.size()) kernel::memcopyN<T>(*out.get(), out.strides(), ins);
@@ -76,26 +78,27 @@ Array<T> join(const int jdim, const vector<Array<T>> &inputs) {
     for (auto &iArray : inputs) odims.dims[jdim] += iArray.dims().dims[jdim];
 
     Array<T> out = createEmptyArray<T>(odims);
-    vector<kernel::RawArray> ins;
+    vector<kernel::BufferPlus> ins;
     ins.reserve(inputs.size());
 
-    dim_t d              = 0;
+    dim_t outOffset      = out.getOffset();
     const dim4 &ostrides = out.strides();
     for (auto &iArray : inputs) {
         const dim4 &idims = iArray.dims();
         if (iArray.isReady()) {
-            ins.push_back({iArray.get(), idims, iArray.strides(),
-                           iArray.getOffset(), d * ostrides.dims[jdim]});
+            ins.emplace_back(iArray.get(), idims, iArray.strides(),
+                             iArray.getOffset(), outOffset);
         } else {
-            Param info = {
-                out.get(),
-                {{idims.dims[0], idims.dims[1], idims.dims[2], idims.dims[3]},
-                 {ostrides.dims[0], ostrides.dims[1], ostrides.dims[2],
-                  ostrides.dims[3]},
-                 d * ostrides.dims[jdim]}};
-            evalNodes(info, iArray.getNode().get());
+            vector<Param> outputs{
+                {out.getData().get(),
+                 {{idims.dims[0], idims.dims[1], idims.dims[2], idims.dims[3]},
+                  {ostrides.dims[0], ostrides.dims[1], ostrides.dims[2],
+                   ostrides.dims[3]},
+                  outOffset}}};
+            const vector<common::Node *> nodes{iArray.getNode().get()};
+            evalNodes(outputs, nodes);
         }
-        d += idims.dims[jdim];
+        outOffset += idims.dims[jdim] * ostrides.dims[jdim];
     }
 
     if (ins.size()) kernel::memcopyN<T>(*out.get(), ostrides, ins);

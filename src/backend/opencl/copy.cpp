@@ -23,7 +23,7 @@ namespace opencl {
 template<typename T>
 void copyData(T *data, const Array<T> &A) {
     if (A.elements() > 0) {
-        Array<T> out = A.isOwner() && A.isLinear() ? A : copyArray(A);
+        Array<T> out = A.isReady() && A.isLinear() ? A : copyArray(A);
         // out is now guaranteed linear
         getQueue().enqueueReadBuffer(*out.get(), CL_TRUE,
                                      sizeof(T) * out.getOffset(),
@@ -65,11 +65,13 @@ struct copyWrapper {
 template<typename T>
 struct copyWrapper<T, T> {
     void operator()(Array<T> &out, Array<T> const &in) {
-        if (in.dims() == out.dims()) {
+        if (out.isLinear() && in.isLinear() &&
+            out.elements() == in.elements()) {
             if (in.isReady()) {
-                kernel::memcopy<T>(*out.get(), out.strides(), *in.get(),
-                                   in.dims(), in.strides(), in.getOffset(),
-                                   in.ndims(), out.getOffset());
+                getQueue().enqueueCopyBuffer(
+                    *in.get(), *out.get(), in.getOffset() * sizeof(T),
+                    out.getOffset() * sizeof(T), in.elements() * sizeof(T),
+                    nullptr, nullptr);
             } else {
                 Param info = {out.get(),
                               {{in.dims().dims[0], in.dims().dims[1],
@@ -80,8 +82,6 @@ struct copyWrapper<T, T> {
                 evalNodes(info, in.getNode().get());
             }
         } else {
-            // Needed to fill up out elements which are not covered by in
-            // elements with the default value
             kernel::copy<T, T>(out, in, in.ndims(), scalar<T>(0), 1.0, false);
         }
     }
@@ -91,6 +91,7 @@ template<typename inType, typename outType>
 void copyArray(Array<outType> &out, Array<inType> const &in) {
     static_assert(!(is_complex<inType>::value && !is_complex<outType>::value),
                   "Cannot copy from complex value to a non complex value");
+    ARG_ASSERT(1, (in.ndims() == out.ndims()));
     copyWrapper<inType, outType> copyFn;
     copyFn(out, in);
 }

@@ -264,7 +264,7 @@ Node_ptr Array<T>::getNode() {
     if (node->isBuffer()) {
         KParam kinfo   = *this;
         auto *bufNode  = reinterpret_cast<BufferNode *>(node.get());
-        unsigned bytes = this->getDataDims().elements() * sizeof(T);
+        unsigned bytes = (unsigned)(this->getDataDims().elements() * sizeof(T));
         bufNode->setData(kinfo, data, bytes, isLinear());
     }
     return node;
@@ -315,7 +315,7 @@ kJITHeuristics passesJitHeuristics(Node *root_node) {
         // This is the base parameter size if the kernel had no
         // arguments
         constexpr size_t base_param_size =
-            sizeof(T *) + sizeof(KParam) + 4 * sizeof(char) + 4 * sizeof(int);
+            sizeof(T *) + sizeof(KParam) + 4 * sizeof(int) + 4 * sizeof(char);
         // extra padding for safety to avoid failure during compilation
         constexpr size_t jit_padding_size = 32;
 

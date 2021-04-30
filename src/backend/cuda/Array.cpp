@@ -223,7 +223,7 @@ void evalMultiple(std::vector<Array<T> *> arrays) {
 template<typename T>
 Node_ptr Array<T>::getNode() {
     if (node->isBuffer()) {
-        unsigned bytes = this->getDataDims().elements() * sizeof(T);
+        unsigned bytes = (unsigned)(this->getDataDims().elements() * sizeof(T));
         auto *bufNode  = reinterpret_cast<BufferNode<T> *>(node.get());
         Param<T> param = *this;
         bufNode->setData(param, data, bytes, isLinear());
@@ -265,7 +265,7 @@ kJITHeuristics passesJitHeuristics(Node *root_node) {
         // The size of the parameters without any extra arguments from the
         // JIT tree. This includes one output Param object and 4 integers.
         constexpr size_t base_param_size =
-            sizeof(Param<T>) + (4 * sizeof(uint));
+            sizeof(Param<T>) + 4 * sizeof(int) + 4 * sizeof(char);
 
         // extra padding for safety to avoid failure during compilation
         constexpr size_t jit_padding_size = 256;  //@umar dontfix!

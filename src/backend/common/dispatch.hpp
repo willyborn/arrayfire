@@ -443,15 +443,17 @@ Tout bestBlockSize(Tin dims[4]) {
             : 1;
     */
 
+    /*
+    // JIT3N-v4Rep64, JIT3N-v4Rep128, JIT3N-v4Rep256
     constexpr int OCC             = 3;
-    constexpr unsigned maxThreads = 256;
+    constexpr unsigned maxThreads = 32;
 
     const unsigned threads0 =
         (dims[0] <= 16)                                      ? dims[0]
         : (dims[0] <= 32)                                    ? 32
         : (maxThreads >= 256) && !(dims[0] & (256 - 1))      ? 256
         : (maxThreads >= 128) && !(dims[0] & (128 - 1))      ? 128
-        : !(dims[0] & (64 - 1))                              ? 64
+        : (maxThreads >= 64) && !(dims[0] & (64 - 1))        ? 64
         : !(dims[0] & (32 - 1))                              ? 32
         : (maxThreads >= 256) && (dims[0] > OCC * (256 - 1)) ? 256
         : (maxThreads >= 128) && (dims[0] > OCC * (128 - 1)) ? 128
@@ -495,8 +497,172 @@ Tout bestBlockSize(Tin dims[4]) {
                 (!(dims[1] & (2 - 1)) || (dims[1] > OCC * (2 - 1)))
             ? 2
             : 1;
-    /**/
+    */
+    /*
+    // JIT3N-v4Rep32.32
+    constexpr int OCC             = 3;
+    constexpr unsigned maxThreads = 32;
 
+    const unsigned threads0 =
+        (dims[0] <= 16)                                      ? dims[0]
+        : (dims[0] <= 32)                                    ? 32
+        : (maxThreads >= 256) && !(dims[0] & (256 - 1))      ? 256
+        : (maxThreads >= 128) && !(dims[0] & (128 - 1))      ? 128
+        : (maxThreads >= 64) && !(dims[0] & (64 - 1))        ? 64
+        : !(dims[0] & (32 - 1))                              ? 32
+        : (maxThreads >= 256) && (dims[0] > OCC * (256 - 1)) ? 256
+        : (maxThreads >= 128) && (dims[0] > OCC * (128 - 1)) ? 128
+                                                             : 32;
+    if (NDIMS == 1) return Tout(threads0);
+    const unsigned threads1 =
+        (threads0 <= maxThreads / 256) &&
+                (!(dims[1] & (256 - 1)) || (dims[1] > OCC * (256 - 1)))
+            ? 256
+        : (threads0 <= maxThreads / 128) &&
+                (!(dims[1] & (128 - 1)) || (dims[1] > OCC * (128 - 1)))
+            ? 128
+        : (threads0 <= maxThreads / 64) &&
+                (!(dims[1] & (64 - 1)) || (dims[1] > OCC * (64 - 1)))
+            ? 64
+#ifdef AF_CUDA
+        : (threads0 <= maxThreads / 32)
+            ? (!(dims[1] & (32 - 1)) || (dims[1] > OCC * (32 - 1)))
+                  ? 32
+                  : std::min(128 / threads0, (unsigned)dims[1])
+        : (threads0 <= maxThreads / 16) &&
+                (!(dims[1] & (16 - 1)) || (dims[1] > OCC * (16 - 1)))
+            ? 16
+#else
+
+        : (threads0 <= maxThreads / 32) &&
+                (!(dims[1] & (32 - 1)) || (dims[1] > OCC * (32 - 1)))
+            ? 32
+        : (threads0 <= maxThreads / 16)
+            ? (!(dims[1] & (16 - 1)) || (dims[1] > OCC * (16 - 1)))
+                  ? 16
+                  : std::min(128 / threads0, (unsigned)dims[1])
+#endif
+        : (threads0 <= maxThreads / 8) &&
+                (!(dims[1] & (8 - 1)) || (dims[1] > OCC * (8 - 1)))
+            ? 8
+        : (threads0 <= maxThreads / 4) &&
+                (!(dims[1] & (4 - 1)) || (dims[1] > OCC * (4 - 1)))
+            ? 4
+        : (threads0 <= maxThreads / 2) &&
+                (!(dims[1] & (2 - 1)) || (dims[1] > OCC * (2 - 1)))
+            ? 2
+            : 1;
+    */
+
+    /*
+        // JIT3N-v4Rep64-32
+        constexpr int OCC = 3;
+    #ifdef AF_CUDA
+        unsigned maxThreads = 64;
+    #else
+        unsigned maxThreads = 128;
+    #endif
+
+        const unsigned threads0 =
+            (dims[0] <= 16)                                      ? dims[0]
+            : (dims[0] <= 32)                                    ? 32
+            : (maxThreads >= 128) && !(dims[0] & (128 - 1))      ? 128
+            : (maxThreads >= 64) && !(dims[0] & (64 - 1))        ? 64
+            : (maxThreads >= 32) && !(dims[0] & (32 - 1))        ? 32
+            : (maxThreads >= 128) && (dims[0] > OCC * (128 - 1)) ? 128
+                                                                 : 64;
+        if (NDIMS == 1) return Tout(threads0);
+
+        maxThreads /= 2;
+        const unsigned threads1 =
+            (threads0 <= maxThreads / 64) &&
+                    (!(dims[1] & (64 - 1)) || (dims[1] > OCC * (64 - 1)))
+                ? 64
+    #ifdef AF_CUDA
+            : (threads0 <= maxThreads / 32)
+                ? (!(dims[1] & (32 - 1)) || (dims[1] > OCC * (32 - 1)))
+                      ? 32
+                      : std::min(maxThreads / threads0, (unsigned)dims[1])
+            : (threads0 <= maxThreads / 16) &&
+                    (!(dims[1] & (16 - 1)) || (dims[1] > OCC * (16 - 1)))
+                ? 16
+    #else
+
+            : (threads0 <= maxThreads / 32) &&
+                    (!(dims[1] & (32 - 1)) || (dims[1] > OCC * (32 - 1)))
+                ? 32
+            : (threads0 <= maxThreads / 16)
+                ? (!(dims[1] & (16 - 1)) || (dims[1] > OCC * (16 - 1)))
+                      ? 16
+                      : std::min(maxThreads / threads0, (unsigned)dims[1])
+    #endif
+            : (threads0 <= maxThreads / 8) &&
+                    (!(dims[1] & (8 - 1)) || (dims[1] > OCC * (8 - 1)))
+                ? 8
+            : (threads0 <= maxThreads / 4) &&
+                    (!(dims[1] & (4 - 1)) || (dims[1] > OCC * (4 - 1)))
+                ? 4
+            : (threads0 <= maxThreads / 2) &&
+                    (!(dims[1] & (2 - 1)) || (dims[1] > OCC * (2 - 1)))
+                ? 2
+                : 1;
+        */
+    /**/
+    // JIT3N64
+    constexpr int OCC = 3;
+#ifdef AF_CUDA
+    constexpr unsigned maxThreads = 64;
+#else
+    constexpr unsigned maxThreads = 128;
+#endif
+
+    const unsigned threads0 =
+        (dims[0] <= 16)                                      ? dims[0]
+        : (dims[0] <= 32)                                    ? 32
+        : (maxThreads >= 128) && !(dims[0] & (128 - 1))      ? 128
+        : (maxThreads >= 64) && !(dims[0] & (64 - 1))        ? 64
+        : (maxThreads >= 32) && !(dims[0] & (32 - 1))        ? 32
+        : (maxThreads >= 128) && (dims[0] > OCC * (128 - 1)) ? 128
+        : (maxThreads >= 64) && (dims[0] > OCC * (64 - 1))   ? 64
+                                                             : maxThreads / 2;
+    if (NDIMS == 1) return Tout(threads0);
+
+    const unsigned threads1 =
+        (threads0 <= maxThreads / 128) &&
+                (!(dims[1] & (128 - 1)) || (dims[1] > OCC * (128 - 1)))
+            ? 128
+        : (threads0 <= maxThreads / 64) &&
+                (!(dims[1] & (64 - 1)) || (dims[1] > OCC * (64 - 1)))
+            ? 64
+#ifdef AF_CUDA
+        : (threads0 <= maxThreads / 32)
+            ? (!(dims[1] & (32 - 1)) || (dims[1] > OCC * (32 - 1)))
+                  ? 32
+                  : std::min(maxThreads / threads0, (unsigned)dims[1])
+        : (threads0 <= maxThreads / 16) &&
+                (!(dims[1] & (16 - 1)) || (dims[1] > OCC * (16 - 1)))
+            ? 16
+#else
+        : (threads0 <= maxThreads / 32) &&
+                (!(dims[1] & (32 - 1)) || (dims[1] > OCC * (32 - 1)))
+            ? 32
+        : (threads0 <= maxThreads / 16)
+            ? (!(dims[1] & (16 - 1)) || (dims[1] > OCC * (16 - 1)))
+                  ? 16
+                  : std::min(maxThreads / threads0, (unsigned)dims[1])
+#endif
+        : (threads0 <= maxThreads / 8) &&
+                (!(dims[1] & (8 - 1)) || (dims[1] > OCC * (8 - 1)))
+            ? 8
+        : (threads0 <= maxThreads / 4) &&
+                (!(dims[1] & (4 - 1)) || (dims[1] > OCC * (4 - 1)))
+            ? 4
+        : (threads0 <= maxThreads / 2) &&
+                (!(dims[1] & (2 - 1)) || (dims[1] > OCC * (2 - 1)))
+            ? 2
+            : 1;
+    /**/
+    /**/
     if (NDIMS == 2) return Tout(threads0, threads1);
 
     const unsigned threads01 = threads0 * threads1;
@@ -510,4 +676,56 @@ Tout bestBlockSize(Tin dims[4]) {
         : (threads01 <= maxThreads / 2) && !(dims[2] & (2 - 1))   ? 2
                                                                   : 1;
     return Tout(threads0, threads1, threads2);
+    /**/
+
+    /*
+    // JIT-32-64
+    // Idea
+    // INPUT is WAITING on multiple cacheline before to proceed
+    // - reading from mem is SNCHRONISE
+    // OUTPUT is writing in cache and IMMEDIATLY returning
+    // - writing to mem is in aSYNCHRONISE
+    // CUDA is randomly scheduling warps (32 elements)
+    // - multiple warps form 1 block and share local memory (overhead)
+    //
+    // 1. Linear input as much as possible, to optimize precaching
+    //  - group all linear dimensions  --> dim0 is largest linear block
+    // - always schedule per warp
+    // 2. Output is using internal cache
+    // 3. Occupation rate is neglected
+    //
+#ifdef AF_CUDA
+    constexpr unsigned minThreads = 32;
+#else
+    constexpr unsigned minThreads = 64;
+#endif
+
+    const unsigned threads0 = (dims[0] <= minThreads) ? dims[0] : minThreads;
+    if (NDIMS == 1) return Tout(threads0);
+
+    const unsigned threads1 =
+        std::min(minThreads / threads0, (unsigned)dims[1]);
+    if (NDIMS == 2) return Tout(threads0, threads1);
+
+    const unsigned threads2 =
+        std::min(minThreads / (threads0 * threads1), (unsigned)dims[2]);
+    return Tout(threads0, threads1, threads2);
+    */
+
+    /*
+    // JIT-32-1
+    #ifdef AF_CUDA
+        constexpr unsigned minThreads = 32;
+    #else
+        constexpr unsigned minThreads = 64;
+    #endif
+
+        const unsigned threads0 = (dims[0] <= minThreads) ? dims[0] :
+    minThreads; if (NDIMS == 1) return Tout(threads0);
+
+        const unsigned threads1 =
+            (threads0 == 1) ? std::min(minThreads / threads0, (unsigned)dims[1])
+                            : 1;
+        return Tout(threads0, threads1);
+        */
 }

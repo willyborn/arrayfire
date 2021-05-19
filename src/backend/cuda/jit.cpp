@@ -29,6 +29,8 @@
 #include <thread>
 #include <vector>
 
+constexpr bool LOG = false;
+
 using common::findModule;
 using common::getFuncName;
 using common::half;
@@ -312,9 +314,15 @@ void evalNodes(vector<Param<T>> &outputs, const vector<Node *> &output_nodes) {
                 }
             }
         }
-        // threads = dim3(256);
-        threads = bestBlockSize<dim3, 1>(outDims);
-        blocks  = dim3(divup((int)outDims[0], threads.x));
+        // threads = bestBlockSize<dim3>(outDims, 32);
+        threads = dim3(4 * 32);
+        //
+        if (LOG)
+            printf("JIT[%lld,%lld,%lld,%lld](%d,%d,%d) ", outDims[0],
+                   outDims[1], outDims[2], outDims[3], threads.x, threads.y,
+                   threads.z);
+        //
+        blocks = dim3(divup((int)outDims[0], threads.x));
     } else {
         // Push all active dimensions to the front, so that the OpenCL WG
         // indexes cover a larger range
@@ -360,10 +368,21 @@ void evalNodes(vector<Param<T>> &outputs, const vector<Node *> &output_nodes) {
                 }
             }
         }
-        threads = bestBlockSize<dim3>(outDims);
-        blocks  = dim3(divup((int)outDims[0], threads.x),
-                      divup((int)outDims[1], threads.y),
-                      divup((int)outDims[2], threads.z));
+        threads = bestBlockSize<dim3>(outDims, 32);
+        //
+        if (LOG)
+            printf("JIT[%lld,%lld,%lld,%lld](%d,%d,%d) ", outDims[0],
+                   outDims[1], outDims[2], outDims[3], threads.x, threads.y,
+                   threads.z);
+        //
+
+        const int *maxGridSize =
+            cuda::getDeviceProp(cuda::getActiveDeviceId()).maxGridSize;
+        blocks = dim3(divup((unsigned)outDims[0], threads.x),
+                      std::min((unsigned)maxGridSize[1],
+                               divup((unsigned)outDims[1], threads.y)),
+                      std::min((unsigned)maxGridSize[2],
+                               divup((unsigned)outDims[2], threads.z)));
     }
     vector<void *> args;
     for (const auto &node : full_nodes) {
@@ -377,13 +396,7 @@ void evalNodes(vector<Param<T>> &outputs, const vector<Node *> &output_nodes) {
     for (auto &inc : incr) { args.push_back(static_cast<void *>(&inc)); }
     for (auto &dec : decode) { args.push_back(static_cast<void *>(&dec)); }
 
-    const int *maxGridSize =
-        cuda::getDeviceProp(cuda::getActiveDeviceId()).maxGridSize;
-    const std::array<int, 3> maxGrid{maxGridSize[0], maxGridSize[1],
-                                     maxGridSize[2]};
-
-    CU_CHECK(cuLaunchKernel(ker, blocks.x, std::min((int)blocks.y, maxGrid[1]),
-                            std::min((int)blocks.z, maxGrid[2]), threads.x,
+    CU_CHECK(cuLaunchKernel(ker, blocks.x, blocks.y, blocks.z, threads.x,
                             threads.y, threads.z, 0, getActiveStream(),
                             args.data(), NULL));
 

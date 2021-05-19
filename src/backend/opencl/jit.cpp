@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+constexpr bool LOG = false;
+
 using common::getFuncName;
 using common::Node;
 using common::Node_ids;
@@ -237,10 +239,9 @@ void evalNodes(vector<Param> &outputs, const vector<Node *> &output_nodes) {
 
     auto ker =
         getKernel(output_nodes, output_ids, full_nodes, full_ids, is_linear);
-
-    // CPUs seem to perform better with work group size 1024
-    const unsigned work_group_size =
-        (getActiveDeviceType() == AFCL_DEVICE_TYPE_CPU) ? 1024 : 256;
+    const cl::Device dev = opencl::getDevice();
+    const unsigned WG =
+        ker.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(dev);
 
     // decode is used to reconstruct the original dimensions inside the kernel
     // 0..3 represents the id number
@@ -286,7 +287,14 @@ void evalNodes(vector<Param> &outputs, const vector<Node *> &output_nodes) {
                 }
             }
         }
-        local  = bestBlockSize<NDRange, 1>(outDims);
+        // local = bestBlockSize<NDRange>(outDims, WG);
+        local = NDRange(4 * WG);
+        //
+        if (LOG)
+            printf("JIT[%lld,%lld,%lld,%lld](%lld,%lld,%lld) ", outDims[0],
+                   outDims[1], outDims[2], outDims[3], local[0], local[1],
+                   local[2]);
+        //
         global = NDRange(local[0] * divup(outDims[0], local[0]));
     } else {
         // Push all active dimensions to the front, so that the OpenCL WG
@@ -334,7 +342,13 @@ void evalNodes(vector<Param> &outputs, const vector<Node *> &output_nodes) {
                 }
             }
         }
-        local  = bestBlockSize<NDRange>(outDims);
+        local = bestBlockSize<NDRange>(outDims, WG);
+        //
+        if (LOG)
+            printf("JIT[%lld,%lld,%lld,%lld](%lld,%lld,%lld) ", outDims[0],
+                   outDims[1], outDims[2], outDims[3], local[0], local[1],
+                   local[2]);
+        //
         global = NDRange(local[0] * divup(outDims[0], local[0]),
                          local[1] * divup(outDims[1], local[1]),
                          local[2] * divup(outDims[2], local[2]));

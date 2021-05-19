@@ -21,6 +21,8 @@
 #include <array>
 #include <tuple>
 
+constexpr bool LOG = false;
+
 namespace cuda {
 namespace kernel {
 
@@ -122,21 +124,24 @@ void memcopy(Param<T> out, CParam<T> in, dim_t indims) {
         } else {
             const int *maxGridSize =
                 cuda::getDeviceProp(cuda::getActiveDeviceId()).maxGridSize;
-            const std::array<unsigned, 3> maxGrid{
-                static_cast<unsigned>(maxGridSize[0]),
-                static_cast<unsigned>(maxGridSize[1]),
-                static_cast<unsigned>(maxGridSize[2])};
             serializeArray(in.dims, in.strides, indims, out.strides);
             increaseWorkload(elements, in.dims, in.strides, indims,
                              out.strides);
-            const dim3 threads = bestBlockSize<dim3>(in.dims);
+            const dim3 threads = bestBlockSize<dim3>(in.dims, 32);
+
+            //
+            if (LOG)
+                printf("[%lld,%lld,%lld,%lld](%d,%d,%d) ", in.dims[0],
+                       in.dims[1], in.dims[2], in.dims[3], threads.x, threads.y,
+                       threads.z);
+            //
             dim3 blocks(divup(static_cast<unsigned>(in.dims[0]), threads.x),
                         divup(static_cast<unsigned>(in.dims[1]), threads.y),
                         divup(static_cast<unsigned>(in.dims[2]), threads.z));
-            const bool loop1 = blocks.x > maxGrid[1];
-            if (loop1) blocks.x = maxGrid[1];
-            const bool loop2 = blocks.y > maxGrid[2];
-            if (loop2) blocks.y = maxGrid[2];
+            const bool loop1 = blocks.y > (unsigned)maxGridSize[1];
+            if (loop1) blocks.y = (unsigned)maxGridSize[1];
+            const bool loop2 = blocks.z > (unsigned)maxGridSize[2];
+            if (loop2) blocks.z = (unsigned)maxGridSize[2];
             EnqueueArgs qArgs(blocks, threads, stream);
 
             auto memCopy = common::getKernel("cuda::memcopy", {memcopy_cuh_src},
@@ -167,10 +172,6 @@ void memcopyN(Param<T> out, std::vector<CParamPlus<T>> &Ins) {
     const auto stream = cuda::getActiveStream();
     const int *maxGridSize =
         cuda::getDeviceProp(cuda::getActiveDeviceId()).maxGridSize;
-    const std::array<unsigned, 3> maxGrid{
-        static_cast<unsigned>(maxGridSize[0]),
-        static_cast<unsigned>(maxGridSize[1]),
-        static_cast<unsigned>(maxGridSize[2])};
 
     for (auto &in_ : Ins) {
         dim_t indims_ = in_.cparam.dims[3] > 1   ? 4
@@ -197,16 +198,23 @@ void memcopyN(Param<T> out, std::vector<CParamPlus<T>> &Ins) {
                                out_.strides);
                 increaseWorkload(elements, in_.cparam.dims, in_.cparam.strides,
                                  indims_, out_.strides);
-                const dim3 threads = bestBlockSize<dim3>(in_.cparam.dims);
+                const dim3 threads = bestBlockSize<dim3>(in_.cparam.dims, 32);
+                //
+                if (LOG)
+                    printf("[%lld,%lld,%lld,%lld](%d,%d,%d) ",
+                           in_.cparam.dims[0], in_.cparam.dims[1],
+                           in_.cparam.dims[2], in_.cparam.dims[3], threads.x,
+                           threads.y, threads.z);
+                //
                 dim3 blocks(
                     divup(static_cast<unsigned>(in_.cparam.dims[0]), threads.x),
                     divup(static_cast<unsigned>(in_.cparam.dims[1]), threads.y),
                     divup(static_cast<unsigned>(in_.cparam.dims[2]),
                           threads.z));
-                const bool loop1 = blocks.x > maxGrid[1];
-                if (loop1) blocks.x = maxGrid[1];
-                const bool loop2 = blocks.y > maxGrid[2];
-                if (loop2) blocks.y = maxGrid[2];
+                const bool loop1 = blocks.y > (unsigned)maxGridSize[1];
+                if (loop1) blocks.y = (unsigned)maxGridSize[1];
+                const bool loop2 = blocks.z > (unsigned)maxGridSize[2];
+                if (loop2) blocks.z = (unsigned)maxGridSize[2];
                 const EnqueueArgs qArgs(blocks, threads, stream);
 
                 if ((loop1 && !loadLoop1) || (loop2 && !loadLoop2) ||
@@ -241,20 +249,22 @@ void copy(Param<outType> dst, CParam<inType> src, dim_t ondims,
     if (elements > 0) {
         const int *maxGridSize =
             cuda::getDeviceProp(cuda::getActiveDeviceId()).maxGridSize;
-        const std::array<unsigned, 3> maxGrid{
-            static_cast<unsigned>(maxGridSize[0]),
-            static_cast<unsigned>(maxGridSize[1]),
-            static_cast<unsigned>(maxGridSize[2])};
         serializeArray<true>(dst.dims, dst.strides, ondims, src.strides,
                              src.dims);
-        const dim3 threads = bestBlockSize<dim3>(dst.dims);
+        const dim3 threads = bestBlockSize<dim3>(dst.dims, 32);
+        //
+        if (LOG)
+            printf("[%lld,%lld,%lld,%lld](%d,%d,%d) ", dst.dims[0], dst.dims[1],
+                   dst.dims[2], dst.dims[3], threads.x, threads.y, threads.z);
+        //
+
         dim3 blocks(divup(static_cast<unsigned>(dst.dims[0]), threads.x),
                     divup(static_cast<unsigned>(dst.dims[1]), threads.y),
                     divup(static_cast<unsigned>(dst.dims[2]), threads.z));
-        const bool loop1 = blocks.x > maxGrid[1];
-        if (loop1) blocks.x = maxGrid[1];
-        const bool loop2 = blocks.y > maxGrid[2];
-        if (loop2) blocks.y = maxGrid[2];
+        const bool loop1 = blocks.y > (unsigned)maxGridSize[1];
+        if (loop1) blocks.y = (unsigned)maxGridSize[1];
+        const bool loop2 = blocks.z > (unsigned)maxGridSize[2];
+        if (loop2) blocks.z = (unsigned)maxGridSize[2];
 
         EnqueueArgs qArgs(blocks, threads, getActiveStream());
 

@@ -25,6 +25,8 @@
 using std::string;
 using std::vector;
 
+constexpr bool LOG = false;
+
 namespace opencl {
 namespace kernel {
 typedef struct {
@@ -149,25 +151,29 @@ void memcopy(const cl::Buffer &b_out, const dim4 &ostrides,
             };
             auto memCopy =
                 common::getKernel("memCopy", {memcopy_cl_src}, targs, options);
+            const cl::Device dev = opencl::getDevice();
+            const unsigned WG =
+                memCopy.get()
+                    .getWorkGroupInfo<
+                        CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(dev);
 
             serializeArray(idims_.dims, istrides_.dims, indims_,
                            ostrides_.dims);
             increaseWorkload(elements, idims_.dims, istrides_.dims, indims_,
                              ostrides_.dims);
 
-            const cl::NDRange local = bestBlockSize<cl::NDRange>(idims_.dims);
+            const cl::NDRange local =
+                bestBlockSize<cl::NDRange>(idims_.dims, WG);
+            //
+            if (LOG)
+                printf("[%d,%d,%d,%d](%lld,%lld,%lld) ", idims_.dims[0],
+                       idims_.dims[1], idims_.dims[2], idims_.dims[3], local[0],
+                       local[1], local[2]);
+            //
             const cl::NDRange global(
                 local[0] * divup(idims_.dims[0], local[0]),
                 local[1] * divup(idims_.dims[1], local[1]),
                 local[2] * divup(idims_.dims[2], local[2]));
-            /*
-            printf("\n[%d,%d,%d,%d] :(%zd,%zd,%zd)|(%zd,%zd,%zd) occup:%zd%%",
-                   idims_.dims[0], idims_.dims[1], idims_.dims[2],
-                   idims_.dims[3], local[0], local[1], local[2], global[0],
-                   global[1], global[2],
-                   100 * (idims_.dims[0] * idims_.dims[1] * idims_.dims[2]) /
-                       (global[0] * global[1] * global[2]));
-                       */
             memCopy(cl::EnqueueArgs(getQueue(), global, local), b_out,
                     ostrides_, static_cast<int>(ooffset), b_in, idims_,
                     istrides_, static_cast<int>(ioffset));
@@ -193,6 +199,7 @@ void memcopyN(const cl::Buffer &b_out, const dim4 &ostrides,
               const vector<BufferPlus> &ins) {
     Kernel memCopy;
     bool loadKernel = true;
+    unsigned WG;
     for (auto &in : ins) {
         dims_t idims_{static_cast<int>(in.idims.dims[0]),
                       static_cast<int>(in.idims.dims[1]),
@@ -231,13 +238,6 @@ void memcopyN(const cl::Buffer &b_out, const dim4 &ostrides,
                 increaseWorkload(elements, idims_.dims, istrides_.dims, indims_,
                                  ostrides_.dims);
 
-                const cl::NDRange local =
-                    bestBlockSize<cl::NDRange>(idims_.dims);
-                const cl::NDRange global(
-                    local[0] * divup(idims_.dims[0], local[0]),
-                    local[1] * divup(idims_.dims[1], local[1]),
-                    local[2] * divup(idims_.dims[2], local[2]));
-
                 if (loadKernel) {
                     const vector<TemplateArg> targs = {
                         TemplateTypename<T>(),
@@ -246,10 +246,27 @@ void memcopyN(const cl::Buffer &b_out, const dim4 &ostrides,
                         DefineKeyValue(T, dtype_traits<T>::getName()),
                         {getTypeBuildDefinition<T>()},
                     };
-                    memCopy    = common::getKernel("memCopy", {memcopy_cl_src},
+                    memCopy = common::getKernel("memCopy", {memcopy_cl_src},
                                                 targs, options);
+                    const cl::Device dev = opencl::getDevice();
+                    WG                   = memCopy.get()
+                             .getWorkGroupInfo<
+                                 CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(
+                                 dev);
                     loadKernel = false;
                 }
+
+                const cl::NDRange local =
+                    bestBlockSize<cl::NDRange>(idims_.dims, WG);  //
+                if (LOG)
+                    printf("[%d,%d,%d,%d](%lld,%lld,%lld) ", idims_.dims[0],
+                           idims_.dims[1], idims_.dims[2], idims_.dims[3],
+                           local[0], local[1], local[2]);
+                //
+                const cl::NDRange global(
+                    local[0] * divup(idims_.dims[0], local[0]),
+                    local[1] * divup(idims_.dims[1], local[1]),
+                    local[2] * divup(idims_.dims[2], local[2]));
 
                 memCopy(cl::EnqueueArgs(getQueue(), global, local), b_out,
                         ostrides_, static_cast<int>(in.ooffset), *in.data,
@@ -285,11 +302,6 @@ void copy(const Param out, const Param in, dim_t ondims,
         serializeArray<true>(odims_.dims, ostrides_.dims, ondims_,
                              istrides_.dims, idims_.dims);
 
-        const cl::NDRange local = bestBlockSize<cl::NDRange>(odims_.dims);
-        const cl::NDRange global(local[0] * divup(odims_.dims[0], local[0]),
-                                 local[1] * divup(odims_.dims[1], local[1]),
-                                 local[2] * divup(odims_.dims[2], local[2]));
-
         if (std::is_same<inType, double>::value ||
             std::is_same<inType, cdouble>::value) {
             // Only scale in double precision when the input array is also
@@ -312,6 +324,23 @@ void copy(const Param out, const Param in, dim_t ondims,
             };
             auto copy =
                 common::getKernel("reshapeCopy", {copy_cl_src}, targs, options);
+            const cl::Device dev = opencl::getDevice();
+            const unsigned WG    = static_cast<unsigned>(
+                copy.get()
+                    .getWorkGroupInfo<
+                        CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(dev));
+            const cl::NDRange local =
+                bestBlockSize<cl::NDRange>(odims_.dims, WG);
+            //
+            if (LOG)
+                printf("[%d,%d,%d,%d](%lld,%lld,%lld) ", odims_.dims[0],
+                       odims_.dims[1], odims_.dims[2], odims_.dims[3], local[0],
+                       local[1], local[2]);
+            //
+            const cl::NDRange global(
+                local[0] * divup(odims_.dims[0], local[0]),
+                local[1] * divup(odims_.dims[1], local[1]),
+                local[2] * divup(odims_.dims[2], local[2]));
             copy(cl::EnqueueArgs(getQueue(), global, local), *out.data, odims_,
                  ostrides_, static_cast<uint>(out.info.offset), *in.data,
                  idims_, istrides_, static_cast<uint>(in.info.offset),
@@ -335,6 +364,23 @@ void copy(const Param out, const Param in, dim_t ondims,
             };
             auto copy =
                 common::getKernel("reshapeCopy", {copy_cl_src}, targs, options);
+            const cl::Device dev = opencl::getDevice();
+            const unsigned WG    = static_cast<unsigned>(
+                copy.get()
+                    .getWorkGroupInfo<
+                        CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(dev));
+            const cl::NDRange local =
+                bestBlockSize<cl::NDRange>(odims_.dims, WG);
+            //
+            if (LOG)
+                printf("[%d,%d,%d,%d](%lld,%lld,%lld) ", odims_.dims[0],
+                       odims_.dims[1], odims_.dims[2], odims_.dims[3], local[0],
+                       local[1], local[2]);
+            //
+            const cl::NDRange global(
+                local[0] * divup(odims_.dims[0], local[0]),
+                local[1] * divup(odims_.dims[1], local[1]),
+                local[2] * divup(odims_.dims[2], local[2]));
             copy(cl::EnqueueArgs(getQueue(), global, local), *out.data, odims_,
                  ostrides_, static_cast<int>(out.info.offset), *in.data, idims_,
                  istrides_, static_cast<int>(in.info.offset), default_value,

@@ -19,7 +19,11 @@
             "platform": "!windows"
         },
         "glad",
-        "intel-mkl"
+		"intel-mkl",
+		"cuda",
+		"cudnn",
+		"boost-program-options",
+		"opencl"
     ],
     "features": {
         "cuda": {

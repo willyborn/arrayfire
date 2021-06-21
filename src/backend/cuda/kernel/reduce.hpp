@@ -33,6 +33,7 @@ __global__ static void reduce_dim_kernel(Param<To> out, CParam<Ti> in,
                                          uint blocks_x, uint blocks_y,
                                          uint offset_dim, bool change_nan,
                                          To nanval) {
+    printf("RDK WRONG ");
     const uint tidx = threadIdx.x;
     const uint tidy = threadIdx.y;
     const uint tid  = tidy * THREADS_X + tidx;
@@ -185,12 +186,38 @@ void reduce_dim(Param<To> out, CParam<Ti> in, bool change_nan, double nanval) {
         }
     }
 }
+template<typename Ti, typename To, af_op_t op, uint DIMX>
+__global__ static void reduce_first_kernel_test(Param<To> out, CParam<Ti> in,
+                                                uint blocks_x, uint blocks_y,
+                                                uint repeat, bool change_nan,
+                                                To nanval) {
+    const uint tidx = threadIdx.x;
+    const uint tidy = threadIdx.y;
+    const uint tidz = threadIdx.z;
+    if (tidx + tidy + tidz == 0) {
+        printf("threads=[%d,%d,%d],op=%d,DIMX=%d \n", blockDim.x, blockDim.y,
+               blockDim.z, op, DIMX);
+        printf(
+            "out=dims[%lld,%lld,%lld,%lld],strides[%lld,%lld,%lld,%lld]"
+            ",ptr=%p\n",
+            out.dims[0], out.dims[1], out.dims[2], out.dims[3], out.strides[0],
+            out.strides[1], out.strides[2], out.strides[3], out.ptr);
+        printf(
+            "in=dims[%lld,%lld,%lld,%lld],strides[%lld,%lld,%lld,%lld]"
+            ",ptr=%p\n",
+            in.dims[0], in.dims[1], in.dims[2], in.dims[3], in.strides[0],
+            in.strides[1], in.strides[2], in.strides[3], in.ptr);
+    }
+    __syncthreads();
+    printf("rfkt ");
+}
 
 template<typename Ti, typename To, af_op_t op, uint DIMX>
 __global__ static void reduce_first_kernel(Param<To> out, CParam<Ti> in,
                                            uint blocks_x, uint blocks_y,
                                            uint repeat, bool change_nan,
                                            To nanval) {
+    printf("rfk ");
     const uint tidx = threadIdx.x;
     const uint tidy = threadIdx.y;
     const uint tid  = tidy * blockDim.x + tidx;
@@ -272,11 +299,29 @@ void reduce_first_launcher(Param<To> out, CParam<Ti> in, const uint blocks_x,
     blocks.z = divup(blocks.y, maxBlocksY);
     blocks.y = divup(blocks.y, blocks.z);
 
+    printf("%s:%d - sizeof(To)=%zd, sizeof(scalar<To>(nanval)=%zd\n", __FILE__,
+           __LINE__, sizeof(To), sizeof(scalar<To>)(nanval));
+    printf(
+        "%s:%d - Before reduce_first_kernel threads_x=%d,blocks_x=%d"
+        ",blocks_y=%d,blocks=[%d,%d,%d],threads=[%d,%d,%d], \n"
+        "out dims=[%lld,%lld,%lld,%lld],strides=[%lld,%lld,%lld,%lld],ptr=%p, "
+        "in dims=[%lld,%lld,%lld,%lld],strides=[%lld,%lld,%lld,%lld],ptr=%p\n",
+        __FILE__, __LINE__, threads_x, blocks_x, blocks_y, blocks.x, blocks.y,
+        blocks.z, threads.x, threads.y, threads.z, out.dims[0], out.dims[1],
+        out.dims[2], out.dims[3], out.strides[0], out.strides[1],
+        out.strides[2], out.strides[3], out.ptr, in.dims[0], in.dims[1],
+        in.dims[2], in.dims[3], in.strides[0], in.strides[1], in.strides[2],
+        in.strides[3], in.ptr);
     switch (threads_x) {
         case 32:
+            CUDA_LAUNCH((reduce_first_kernel_test<Ti, To, op, 32>), blocks,
+                        threads, out, in, blocks_x, blocks_y, repeat,
+                        change_nan, scalar<To>(nanval));
+            /*
             CUDA_LAUNCH((reduce_first_kernel<Ti, To, op, 32>), blocks, threads,
                         out, in, blocks_x, blocks_y, repeat, change_nan,
                         scalar<To>(nanval));
+             */
             break;
         case 64:
             CUDA_LAUNCH((reduce_first_kernel<Ti, To, op, 64>), blocks, threads,
@@ -295,7 +340,27 @@ void reduce_first_launcher(Param<To> out, CParam<Ti> in, const uint blocks_x,
             break;
     }
 
+    CUDA_CHECK(cudaStreamSynchronize(cuda::getActiveStream()));
     POST_LAUNCH_CHECK();
+    printf("%s:%d - After reduce_first_kernel\n", __FILE__, __LINE__);
+    {
+        printf("%s:%d - Before memcheck out=%p\n", __FILE__, __LINE__, out.ptr);
+        char tmp[4];
+        auto stream = cuda::getActiveStream();
+        CUDA_CHECK(cudaMemcpyAsync(tmp, out.ptr, sizeof(tmp),
+                                   cudaMemcpyDeviceToHost, stream));
+        CUDA_CHECK(cudaStreamSynchronize(stream));
+        printf("%s:%d - After memcheck\n", __FILE__, __LINE__);
+    }
+    {
+        printf("%s:%d - Before memcheck in=%p\n", __FILE__, __LINE__, in.ptr);
+        char tmp[4];
+        auto stream = cuda::getActiveStream();
+        CUDA_CHECK(cudaMemcpyAsync(tmp, in.ptr, sizeof(tmp),
+                                   cudaMemcpyDeviceToHost, stream));
+        CUDA_CHECK(cudaStreamSynchronize(stream));
+        printf("%s:%d - After memcheck\n", __FILE__, __LINE__);
+    }
 }
 
 template<typename Ti, typename To, af_op_t op>

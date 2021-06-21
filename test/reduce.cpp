@@ -87,7 +87,15 @@ void reduceTest(string pTestFile, int off = 0, bool isSubRef = false,
 
         // Get result
         vector<To> outData(dims.elements());
+        printf(
+            "%s:%d - Before af_get_data_ptr &outData.front=%p, "
+            "outData.data=%p, arr=%p\n",
+            __FILE__, __LINE__, &outData.front(), outData.data(), outArray);
         ASSERT_SUCCESS(af_get_data_ptr((void *)&outData.front(), outArray));
+        printf("%s:%d - After af_get_data_ptr\n", __FILE__, __LINE__);
+
+        printf("%s:%d Before exit", __FILE__, __LINE__);
+        exit(-999);
 
         size_t nElems = currGoldBar.size();
         if (std::equal(currGoldBar.begin(), currGoldBar.end(),

@@ -120,18 +120,18 @@ __DH__ STATIC_ cdouble min<cdouble>(cdouble lhs, cdouble rhs) {
 
 template<typename T>
 __DH__ static T scalar(double val) {
-    return (T)(val);
+    return static_cast<T>(val);
 }
 
 template<>
 __DH__ STATIC_ cfloat scalar<cfloat>(double val) {
-    cfloat cval = {(float)val, 0};
+    cfloat cval = {static_cast<float>(val), 0.0F};
     return cval;
 }
 
 template<>
 __DH__ STATIC_ cdouble scalar<cdouble>(double val) {
-    cdouble cval = {val, 0};
+    cdouble cval = {val, 0.0};
     return cval;
 }
 

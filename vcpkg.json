@@ -8,7 +8,9 @@
         "boost-math",
         "boost-stacktrace",
         "spdlog",
-        "freeimage"
+        "freeimage",
+        "openblas",
+        "fftw3"
     ],
     "overrides": [
         {

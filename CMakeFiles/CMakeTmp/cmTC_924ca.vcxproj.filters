@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\github\willyborn\arrayfire\CMakeFiles\CMakeTmp\CheckIncludeFile.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{295FE416-D87D-3BE8-B779-4E750A748DFE}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

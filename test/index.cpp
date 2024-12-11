@@ -54,7 +54,7 @@ void DimCheck(const vector<af_seq> &seqs) {
     vector<T> hData(dims);
     for (int i = 0; i < (int)dims; i++) { hData[i] = i; }
 
-    af_array a = 0;
+    af_array a = nullptr;
     ASSERT_SUCCESS(af_create_array(&a, &hData.front(), ndims, d,
                                    (af_dtype)dtype_traits<T>::af_type));
 
@@ -336,7 +336,7 @@ void DimCheck2D(const vector<vector<af_seq>> &seqs, string TestFile,
     readTests<T, T, int>(TestFile, numDims, hData, tests);
     dim4 dimensions = numDims[0];
 
-    af_array a = 0;
+    af_array a = nullptr;
     ASSERT_SUCCESS(af_create_array(&a, &(hData[0].front()), NDims,
                                    dimensions.get(),
                                    (af_dtype)dtype_traits<T>::af_type));
@@ -595,13 +595,13 @@ TEST(Index, Docs_Util_C_API) {
                                                 // the given dimension
 
     // Create array
-    af_array a;
+    af_array a=nullptr;
     unsigned ndims = 2;
     dim_t dim[]    = {10, 10};
     af_randu(&a, ndims, dim, f32);
 
     // Create index array
-    af_array idx;
+    af_array idx=nullptr;
     unsigned n = 1;
     dim_t d[]  = {5};
     af_range(&idx, n, d, 0, s32);
@@ -613,7 +613,7 @@ TEST(Index, Docs_Util_C_API) {
     err = af_set_array_indexer(indexers, idx, 1);
 
     // index with indexers
-    af_array out;
+    af_array out=nullptr;
     err = af_index_gen(&out, a, 2, indexers);  // number of indexers should be two since
                                                // we have set only second af_index_t
     if (err != AF_SUCCESS) {
@@ -727,9 +727,9 @@ void arrayIndexTest(string pTestFile, int dim) {
 
     dim4 dims0        = numDims[0];
     dim4 dims1        = numDims[1];
-    af_array outArray = 0;
-    af_array inArray  = 0;
-    af_array idxArray = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
+    af_array idxArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims0.ndims(),
                                    dims0.get(),
@@ -1520,9 +1520,9 @@ TEST(Assign, LinearIndexSeq) {
     array a       = randu(nx, ny);
     af::index idx = seq(st, en);
 
-    af_array in_arr = a.get();
-    af_index_t ii   = idx.get();
-    af_array out_arr;
+    af_array in_arr  = a.get();
+    af_index_t ii    = idx.get();
+    af_array out_arr = nullptr;
 
     ASSERT_SUCCESS(af_index(&out_arr, in_arr, 1, &ii.idx.seq));
 
@@ -1551,9 +1551,9 @@ TEST(Assign, LinearIndexGenSeq) {
     array a       = randu(nx, ny);
     af::index idx = seq(st, en);
 
-    af_array in_arr = a.get();
-    af_index_t ii   = idx.get();
-    af_array out_arr;
+    af_array in_arr  = a.get();
+    af_index_t ii    = idx.get();
+    af_array out_arr = nullptr;
 
     ASSERT_SUCCESS(af_index_gen(&out_arr, in_arr, 1, &ii));
 
@@ -1582,9 +1582,9 @@ TEST(Assign, LinearIndexGenArr) {
     array a       = randu(nx, ny);
     af::index idx = array(seq(st, en));
 
-    af_array in_arr = a.get();
-    af_index_t ii   = idx.get();
-    af_array out_arr;
+    af_array in_arr  = a.get();
+    af_index_t ii    = idx.get();
+    af_array out_arr = nullptr;
 
     ASSERT_SUCCESS(af_index_gen(&out_arr, in_arr, 1, &ii));
 

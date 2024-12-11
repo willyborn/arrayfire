@@ -47,7 +47,7 @@ struct is_complex<af::cdouble> {
 };
 
 array constant(af_half val, const dim4 &dims, const dtype type) {
-    af_array res;
+    af_array res = nullptr;
     UNUSED(val);
     AF_THROW(af_constant(&res, 0,  //(double)val,
                          dims.ndims(), dims.get(), type));
@@ -57,7 +57,7 @@ array constant(af_half val, const dim4 &dims, const dtype type) {
 template<typename T, typename = typename enable_if<
                          !static_cast<bool>(is_complex<T>::value), T>::type>
 array constant(T val, const dim4 &dims, dtype type) {
-    af_array res;
+    af_array res = nullptr;
     if (type != s64 && type != u64) {
         AF_THROW(
             af_constant(&res, (double)val, dims.ndims(), dims.get(), type));
@@ -77,7 +77,7 @@ constant(T val, const dim4 &dims, const dtype type) {
     if (type != c32 && type != c64) {
         return ::constant(real(val), dims, type);
     }
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_constant_complex(&res, real(val), imag(val), dims.ndims(),
                                  dims.get(), type));
     return array(res);
@@ -146,7 +146,7 @@ CONSTANT(half_float::half);
 #undef CONSTANT
 
 array range(const dim4 &dims, const int seq_dim, const af::dtype ty) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_range(&out, dims.ndims(), dims.get(), seq_dim, ty));
     return array(out);
 }
@@ -157,14 +157,14 @@ array range(const dim_t d0, const dim_t d1, const dim_t d2, const dim_t d3,
 }
 
 array iota(const dim4 &dims, const dim4 &tile_dims, const af::dtype ty) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_iota(&out, dims.ndims(), dims.get(), tile_dims.ndims(),
                      tile_dims.get(), ty));
     return array(out);
 }
 
 array identity(const dim4 &dims, const af::dtype type) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_identity(&res, dims.ndims(), dims.get(), type));
     return array(res);
 }
@@ -188,7 +188,7 @@ array identity(const dim_t d0, const dim_t d1, const dim_t d2, const dim_t d3,
 }
 
 array diag(const array &in, const int num, const bool extract) {
-    af_array res;
+    af_array res = nullptr;
     if (extract) {
         AF_THROW(af_diag_extract(&res, in.get(), num));
     } else {
@@ -276,31 +276,31 @@ array flip(const array &in, const unsigned dim) {
 }
 
 array lower(const array &in, bool is_unit_diag) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_lower(&res, in.get(), is_unit_diag));
     return array(res);
 }
 
 array upper(const array &in, bool is_unit_diag) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_upper(&res, in.get(), is_unit_diag));
     return array(res);
 }
 
 array select(const array &cond, const array &a, const array &b) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_select(&res, cond.get(), a.get(), b.get()));
     return array(res);
 }
 
 array select(const array &cond, const array &a, const double &b) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_select_scalar_r(&res, cond.get(), a.get(), b));
     return array(res);
 }
 
 array select(const array &cond, const double &a, const array &b) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_select_scalar_l(&res, cond.get(), a, b.get()));
     return array(res);
 }
@@ -322,32 +322,32 @@ void replace(array &a, const array &cond, const unsigned long long b) {
 }
 
 array select(const array &cond, const array &a, const long long b) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_select_scalar_r_long(&res, cond.get(), a.get(), b));
     return array(res);
 }
 
 array select(const array &cond, const array &a, const unsigned long long b) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_select_scalar_r_ulong(&res, cond.get(), a.get(), b));
     return array(res);
 }
 
 array select(const array &cond, const long long a, const array &b) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_select_scalar_l_long(&res, cond.get(), a, b.get()));
     return array(res);
 }
 
 array select(const array &cond, const unsigned long long a, const array &b) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_select_scalar_l_ulong(&res, cond.get(), a, b.get()));
     return array(res);
 }
 
 array pad(const array &in, const dim4 &beginPadding, const dim4 &endPadding,
           const borderType padFillType) {
-    af_array out = 0;
+    af_array out = nullptr;
     // FIXME(pradeep) Cannot use dim4::ndims() since that will
     //               always return 0 if any one of dimensions
     //               has no padding completely

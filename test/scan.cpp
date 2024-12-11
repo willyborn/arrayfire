@@ -56,9 +56,9 @@ void scanTest(string pTestFile, int off = 0, bool isSubRef = false,
     vector<Ti> in(data[0].size());
     transform(data[0].begin(), data[0].end(), in.begin(), convert_to<Ti, int>);
 
-    af_array inArray   = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
 
     // Get input array
     if (isSubRef) {

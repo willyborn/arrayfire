@@ -48,7 +48,7 @@ static inline af_array reorder(const af_array in, const af::dim4 &rdims0) {
     // Ensure all JIT nodes are evaled
     In.eval();
 
-    af_array out;
+    af_array out = nullptr;
     if (rdims[0] == 0 && rdims[1] == 1 && rdims[2] == 2 && rdims[3] == 3) {
         out = getHandle(In);
     } else if (rdims[0] == 0) {

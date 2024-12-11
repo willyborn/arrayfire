@@ -58,9 +58,9 @@ void moddimsTest(string pTestFile, bool isSubRef = false,
     T *outData;
 
     if (isSubRef) {
-        af_array inArray  = 0;
-        af_array subArray = 0;
-        af_array outArray = 0;
+        af_array inArray  = nullptr;
+        af_array subArray = nullptr;
+        af_array outArray = nullptr;
 
         ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                        dims.get(),
@@ -85,8 +85,8 @@ void moddimsTest(string pTestFile, bool isSubRef = false,
         ASSERT_SUCCESS(af_release_array(outArray));
         ASSERT_SUCCESS(af_release_array(subArray));
     } else {
-        af_array inArray  = 0;
-        af_array outArray = 0;
+        af_array inArray  = nullptr;
+        af_array outArray = nullptr;
 
         ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                        dims.get(),
@@ -136,9 +136,9 @@ void moddimsArgsTest(string pTestFile) {
     readTests<T, T, int>(pTestFile, numDims, in, tests);
     dim4 dims = numDims[0];
 
-    af_array inArray   = 0;
-    af_array outArray  = 0;
-    af_array outArray2 = 0;
+    af_array inArray   = nullptr;
+    af_array outArray  = nullptr;
+    af_array outArray2 = nullptr;
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
                                    (af_dtype)dtype_traits<T>::af_type));
@@ -169,8 +169,8 @@ void moddimsMismatchTest(string pTestFile) {
     readTests<T, T, int>(pTestFile, numDims, in, tests);
     dim4 dims = numDims[0];
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
                                    (af_dtype)dtype_traits<T>::af_type));

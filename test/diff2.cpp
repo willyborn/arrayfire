@@ -69,9 +69,9 @@ void diff2Test(string pTestFile, unsigned dim, bool isSubRef = false,
     readTests<T, T, int>(pTestFile, numDims, in, tests);
     dim4 dims = numDims[0];
 
-    af_array inArray   = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
     // Get input array
     if (isSubRef) {
         ASSERT_SUCCESS(af_create_array(&tempArray, &(in[0].front()),
@@ -158,8 +158,8 @@ void diff2ArgsTest(string pTestFile) {
     readTests<T, T, int>(pTestFile, numDims, in, tests);
     dim4 dims = numDims[0];
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),

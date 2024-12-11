@@ -60,9 +60,9 @@ void fftconvolveTest(string pTestFile, bool expand) {
 
     dim4 sDims        = numDims[0];
     dim4 fDims        = numDims[1];
-    af_array signal   = 0;
-    af_array filter   = 0;
-    af_array outArray = 0;
+    af_array signal   = nullptr;
+    af_array filter   = nullptr;
+    af_array outArray = nullptr;
     af_dtype in_type  = (af_dtype)dtype_traits<T>::af_type;
 
     ASSERT_SUCCESS(af_create_array(&signal, &(in[0].front()), sDims.ndims(),

@@ -52,9 +52,9 @@ void matchTemplateTest(string pTestFile, af_match_type pMatchType) {
 
     dim4 sDims        = numDims[0];
     dim4 tDims        = numDims[1];
-    af_array outArray = 0;
-    af_array sArray   = 0;
-    af_array tArray   = 0;
+    af_array outArray = nullptr;
+    af_array sArray   = nullptr;
+    af_array tArray   = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&sArray, &(in[0].front()), sDims.ndims(),
                                    sDims.get(),
@@ -99,9 +99,9 @@ TYPED_TEST(MatchTemplate, MatrixBatch_SAD) {
 }
 
 TEST(MatchTemplate, InvalidMatchType) {
-    af_array inArray  = 0;
-    af_array tArray   = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array tArray   = nullptr;
+    af_array outArray = nullptr;
 
     vector<float> in(100, 1);
 

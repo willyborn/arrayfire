@@ -53,9 +53,9 @@ void testSobelDerivatives(string pTestFile) {
     readTests<Ti, To, int>(pTestFile, numDims, in, tests);
 
     dim4 dims        = numDims[0];
-    af_array dxArray = 0;
-    af_array dyArray = 0;
-    af_array inArray = 0;
+    af_array dxArray = nullptr;
+    af_array dyArray = nullptr;
+    af_array inArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),

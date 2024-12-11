@@ -139,8 +139,8 @@ af_err af_assign_seq(af_array* out, const af_array lhs, const unsigned ndims,
         const ArrayInfo& lInfo = getInfo(lhs);
 
         if (ndims == 1 && ndims != lInfo.ndims()) {
-            af_array tmp_in;
-            af_array tmp_out;
+            af_array tmp_in  = nullptr;
+            af_array tmp_out = nullptr;
             AF_CHECK(af_flat(&tmp_in, lhs));
             AF_CHECK(af_assign_seq(&tmp_out, tmp_in, ndims, index, rhs));
             AF_CHECK(

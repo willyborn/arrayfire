@@ -567,7 +567,7 @@ TEST(Memory, unlock) {
 
     vector<float> in(num);
 
-    af_array arr = 0;
+    af_array arr = nullptr;
     ASSERT_SUCCESS(af_create_array(&arr, &in[0], 1, &num, f32));
 
     deviceMemInfo(&alloc_bytes, &alloc_buffers, &lock_bytes, &lock_buffers);

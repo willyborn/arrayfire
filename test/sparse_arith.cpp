@@ -211,7 +211,7 @@ void sparseArithTesterDiv(const int m, const int n, int factor,
     array resO = arith_op<af_div_t>()(OA, B);
 
     // Assert division by sparse is not allowed
-    af_array out_temp = 0;
+    af_array out_temp = nullptr;
     ASSERT_EQ(AF_ERR_NOT_SUPPORTED,
               af_div(&out_temp, B.get(), RA.get(), false));
     ASSERT_EQ(AF_ERR_NOT_SUPPORTED,

@@ -59,11 +59,11 @@ void homographyTest(string pTestFile, const af_homography_type htype,
 
     inFiles[0].insert(0, string(TEST_DIR "/homography/"));
 
-    af_array trainArray_f32 = 0;
-    af_array trainArray     = 0;
-    af_array train_desc     = 0;
-    af_array train_feat_x   = 0;
-    af_array train_feat_y   = 0;
+    af_array trainArray_f32 = nullptr;
+    af_array trainArray     = nullptr;
+    af_array train_desc     = nullptr;
+    af_array train_feat_x   = nullptr;
+    af_array train_feat_y   = nullptr;
     af_features train_feat;
 
     ASSERT_SUCCESS(af_load_image(&trainArray_f32, inFiles[0].c_str(), false));
@@ -75,21 +75,21 @@ void homographyTest(string pTestFile, const af_homography_type htype,
     ASSERT_SUCCESS(af_get_features_xpos(&train_feat_x, train_feat));
     ASSERT_SUCCESS(af_get_features_ypos(&train_feat_y, train_feat));
 
-    af_array queryArray       = 0;
-    af_array query_desc       = 0;
-    af_array idx              = 0;
-    af_array dist             = 0;
-    af_array const_50         = 0;
-    af_array dist_thr         = 0;
-    af_array train_idx        = 0;
-    af_array query_idx        = 0;
-    af_array query_feat_x     = 0;
-    af_array query_feat_y     = 0;
-    af_array H                = 0;
-    af_array train_feat_x_idx = 0;
-    af_array train_feat_y_idx = 0;
-    af_array query_feat_x_idx = 0;
-    af_array query_feat_y_idx = 0;
+    af_array queryArray       = nullptr;
+    af_array query_desc       = nullptr;
+    af_array idx              = nullptr;
+    af_array dist             = nullptr;
+    af_array const_50         = nullptr;
+    af_array dist_thr         = nullptr;
+    af_array train_idx        = nullptr;
+    af_array query_idx        = nullptr;
+    af_array query_feat_x     = nullptr;
+    af_array query_feat_y     = nullptr;
+    af_array H                = nullptr;
+    af_array train_feat_x_idx = nullptr;
+    af_array train_feat_y_idx = nullptr;
+    af_array query_feat_x_idx = nullptr;
+    af_array query_feat_y_idx = nullptr;
     af_features query_feat;
 
     const float theta   = Pi * 0.5f;

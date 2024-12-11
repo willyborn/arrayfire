@@ -305,7 +305,7 @@ TEST(Pinverse, CustomTol) {
 TEST(Pinverse, C) {
     array in =
         readTestInput<float>(string(TEST_DIR "/pinverse/pinverse10x8.test"));
-    af_array inpinv = 0, identity = 0, out = 0;
+    af_array inpinv = nullptr, identity = nullptr, out = nullptr;
     ASSERT_SUCCESS(af_pinverse(&inpinv, in.get(), 1e-6, AF_MAT_NONE));
     ASSERT_SUCCESS(
         af_matmul(&identity, in.get(), inpinv, AF_MAT_NONE, AF_MAT_NONE));
@@ -322,7 +322,7 @@ TEST(Pinverse, C) {
 TEST(Pinverse, C_CustomTol) {
     array in =
         readTestInput<float>(string(TEST_DIR "/pinverse/pinverse10x8.test"));
-    af_array inpinv = 0, identity = 0, out = 0;
+    af_array inpinv = nullptr, identity = nullptr, out = nullptr;
     ASSERT_SUCCESS(af_pinverse(&inpinv, in.get(), 1e-12, AF_MAT_NONE));
     ASSERT_SUCCESS(
         af_matmul(&identity, in.get(), inpinv, AF_MAT_NONE, AF_MAT_NONE));

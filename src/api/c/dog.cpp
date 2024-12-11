@@ -28,8 +28,7 @@ using detail::ushort;
 
 template<typename T, typename accT>
 static af_array dog(const af_array& in, const int radius1, const int radius2) {
-    af_array g1, g2;
-    g1 = g2 = 0;
+    af_array g1 = nullptr, g2 = nullptr;
     AF_CHECK(
         af_gaussian_kernel(&g1, 2 * radius1 + 1, 2 * radius1 + 1, 0.0, 0.0));
     AF_CHECK(

@@ -37,9 +37,9 @@ void bilateralTest(string pTestFile) {
     size_t testCount = inDims.size();
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array inArray   = 0;
-        af_array outArray  = 0;
-        af_array goldArray = 0;
+        af_array inArray   = nullptr;
+        af_array outArray  = nullptr;
+        af_array goldArray = nullptr;
         dim_t nElems       = 0;
 
         inFiles[testId].insert(0, string(TEST_DIR "/bilateral/"));
@@ -93,8 +93,8 @@ void bilateralDataTest(string pTestFile) {
     readTests<inType, outType, float>(pTestFile, numDims, in, tests);
 
     dim4 dims         = numDims[0];
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
@@ -132,8 +132,8 @@ TYPED_TEST(BilateralOnData, InvalidArgs) {
 
     vector<TypeParam> in(100, 1);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     // check for color image bilateral
     dim4 dims = dim4(100, 1, 1, 1);

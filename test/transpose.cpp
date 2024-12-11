@@ -63,8 +63,8 @@ void trsTest(string pTestFile, bool isSubRef = false,
     readTests<T, T, int>(pTestFile, numDims, in, tests);
     dim4 dims = numDims[0];
 
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
     T *outData;
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
@@ -73,7 +73,7 @@ void trsTest(string pTestFile, bool isSubRef = false,
     // check if the test is for indexed Array
     if (isSubRef) {
         dim4 newDims(dims[1] - 4, dims[0] - 4, dims[2], dims[3]);
-        af_array subArray = 0;
+        af_array subArray = nullptr;
         ASSERT_SUCCESS(
             af_index(&subArray, inArray, seqv->size(), &seqv->front()));
         ASSERT_SUCCESS(af_transpose(&outArray, subArray, false));

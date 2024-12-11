@@ -283,7 +283,7 @@ TEST(JIT, NonLinearLargeY) {
 }
 
 TEST(JIT, NonLinearLargeX) {
-    af_array r, c, s;
+    af_array r = nullptr, c = nullptr, s = nullptr;
     dim_t rdims[] = {1024000, 1, 3};
     dim_t cdims[] = {1, 1, 3};
     dim_t sdims[] = {1, 1, 1};

@@ -89,7 +89,7 @@ template<typename T>
 void randuTest(dim4 &dims) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
     ASSERT_SUCCESS(af_randu(&outArray, dims.ndims(), dims.get(),
                             (af_dtype)dtype_traits<T>::af_type));
     ASSERT_EQ(af_sync(-1), AF_SUCCESS);
@@ -100,7 +100,7 @@ template<typename T>
 void randnTest(dim4 &dims) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
     ASSERT_SUCCESS(af_randn(&outArray, dims.ndims(), dims.get(),
                             (af_dtype)dtype_traits<T>::af_type));
     ASSERT_EQ(af_sync(-1), AF_SUCCESS);
@@ -154,7 +154,7 @@ void randuArgsTest() {
 
     dim_t ndims       = 4;
     dim_t dims[]      = {1, 2, 3, 0};
-    af_array outArray = 0;
+    af_array outArray = nullptr;
     ASSERT_EQ(AF_ERR_SIZE, af_randu(&outArray, ndims, dims,
                                     (af_dtype)dtype_traits<char>::af_type));
     ASSERT_EQ(af_sync(-1), AF_SUCCESS);

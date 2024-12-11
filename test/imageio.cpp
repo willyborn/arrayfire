@@ -45,7 +45,7 @@ void loadImageTest(string pTestFile, string pImageFile, const bool isColor) {
     readTests<float, float, float>(pTestFile, numDims, in, tests);
     dim4 dims = numDims[0];
 
-    af_array imgArray = 0;
+    af_array imgArray = nullptr;
     ASSERT_SUCCESS(af_load_image(&imgArray, pImageFile.c_str(), isColor));
 
     // Get result
@@ -95,7 +95,7 @@ TYPED_TEST(ImageIO, ColorSeq) {
 void loadimageArgsTest(string pImageFile, const bool isColor, af_err err) {
     IMAGEIO_ENABLED_CHECK();
 
-    af_array imgArray = 0;
+    af_array imgArray = nullptr;
 
     ASSERT_EQ(err, af_load_image(&imgArray, pImageFile.c_str(), isColor));
 

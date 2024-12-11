@@ -213,7 +213,7 @@ af_err af_load_image_native(af_array* out, const char* filename) {
             _.FreeImage_GetBits(pBitmap.get()) + nSrcPitch * (fi_h - 1);
 
         // result image
-        af_array rImage;
+        af_array rImage = nullptr;
         if (fi_color == 4) {  // 4 channel image
             if (fi_bpc == 8) {
                 AF_CHECK((readImage_t<uchar, AFFI_RGBA>)(&rImage, pSrcLine,

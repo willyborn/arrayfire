@@ -118,7 +118,7 @@ TEST(SPARSE_CONVERT, CSC_ARG_ERROR) {
 
     // Convert src to dest format and dest to src
     // Use C-API to catch error
-    af_array out = 0;
+    af_array out = nullptr;
     ASSERT_EQ(AF_ERR_ARG, af_sparse_convert_to(&out, sA.get(), AF_STORAGE_CSC));
 
     if (out != 0) af_release_array(out);

@@ -400,8 +400,8 @@ af_err af_pow(af_array *out, const af_array lhs, const af_array rhs,
         const ArrayInfo &linfo = getInfo(lhs);
         const ArrayInfo &rinfo = getInfo(rhs);
         if (rinfo.isComplex()) {
-            af_array log_lhs, log_res;
-            af_array res;
+            af_array log_lhs = nullptr, log_res = nullptr;
+            af_array res = nullptr;
             AF_CHECK(af_log(&log_lhs, lhs));
             AF_CHECK(af_mul(&log_res, log_lhs, rhs, batchMode));
             AF_CHECK(af_exp(&res, log_res));
@@ -411,10 +411,10 @@ af_err af_pow(af_array *out, const af_array lhs, const af_array rhs,
             return AF_SUCCESS;
         }
         if (linfo.isComplex()) {
-            af_array mag, angle;
-            af_array mag_res, angle_res;
-            af_array real_res, imag_res, cplx_res;
-            af_array res;
+            af_array mag = nullptr, angle = nullptr;
+            af_array mag_res = nullptr, angle_res = nullptr;
+            af_array real_res = nullptr, imag_res = nullptr, cplx_res = nullptr;
+            af_array res = nullptr;
             AF_CHECK(af_abs(&mag, lhs));
             AF_CHECK(af_arg(&angle, lhs));
             AF_CHECK(af_pow(&mag_res, mag, rhs, batchMode));
@@ -445,8 +445,8 @@ af_err af_root(af_array *out, const af_array lhs, const af_array rhs,
         const ArrayInfo &linfo = getInfo(lhs);
         const ArrayInfo &rinfo = getInfo(rhs);
         if (linfo.isComplex() || rinfo.isComplex()) {
-            af_array log_lhs, log_res;
-            af_array res;
+            af_array log_lhs = nullptr, log_res = nullptr;
+            af_array res = nullptr;
             AF_CHECK(af_log(&log_lhs, lhs));
             AF_CHECK(af_div(&log_res, log_lhs, rhs, batchMode));
             AF_CHECK(af_exp(&res, log_res));
@@ -454,11 +454,11 @@ af_err af_root(af_array *out, const af_array lhs, const af_array rhs,
             return AF_SUCCESS;
         }
 
-        af_array one;
+        af_array one = nullptr;
         AF_CHECK(af_constant(&one, 1, linfo.ndims(), linfo.dims().get(),
                              linfo.getType()));
 
-        af_array inv_lhs;
+        af_array inv_lhs = nullptr;
         AF_CHECK(af_div(&inv_lhs, one, lhs, batchMode));
 
         AF_CHECK(af_arith_real<af_pow_t>(out, rhs, inv_lhs, batchMode));

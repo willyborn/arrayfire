@@ -30,7 +30,7 @@ template<typename T>
 void testFunction() {
     info();
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
     dim4 dims(32, 32, 1, 1);
     ASSERT_SUCCESS(af_randu(&outArray, dims.ndims(), dims.get(),
                             (af_dtype)dtype_traits<T>::af_type));

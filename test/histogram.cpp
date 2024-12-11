@@ -51,8 +51,8 @@ void histTest(string pTestFile, unsigned nbins, double minval, double maxval) {
     readTests<inType, uint, uint>(pTestFile, numDims, in, tests);
     dim4 dims = numDims[0];
 
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),

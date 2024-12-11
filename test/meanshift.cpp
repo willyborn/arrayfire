@@ -39,8 +39,8 @@ TYPED_TEST(Meanshift, InvalidArgs) {
 
     vector<TypeParam> in(100, 1);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims = dim4(100, 1, 1, 1);
     ASSERT_SUCCESS(af_create_array(&inArray, &in.front(), dims.ndims(),
@@ -66,11 +66,11 @@ void meanshiftTest(string pTestFile, const float ss) {
     size_t testCount = inDims.size();
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array inArray       = 0;
-        af_array inArray_f32   = 0;
-        af_array outArray      = 0;
-        af_array goldArray     = 0;
-        af_array goldArray_f32 = 0;
+        af_array inArray       = nullptr;
+        af_array inArray_f32   = nullptr;
+        af_array outArray      = nullptr;
+        af_array goldArray     = nullptr;
+        af_array goldArray_f32 = nullptr;
         dim_t nElems           = 0;
 
         inFiles[testId].insert(0, string(TEST_DIR "/meanshift/"));

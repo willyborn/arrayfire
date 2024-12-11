@@ -937,7 +937,7 @@ static af_err ireduce_common(af_array *val, af_array *idx, const af_array in,
         }
 
         af_dtype type = in_info.getType();
-        af_array res, loc;
+        af_array res = nullptr, loc = nullptr;
 
         switch (type) {
             case f32: ireduce<op, float>(&res, &loc, in, dim); break;
@@ -998,7 +998,7 @@ static af_err rreduce_common(af_array *val, af_array *idx, const af_array in,
         if (keytype != u32) { TYPE_ERROR(4, keytype); }
 
         af_dtype type = in_info.getType();
-        af_array res, loc;
+        af_array res = nullptr, loc = nullptr;
 
         switch (type) {
             case f32:

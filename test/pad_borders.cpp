@@ -159,8 +159,8 @@ TYPED_TEST(PadBorders, EndCorner) {
 }
 
 TEST(PadBorders, NegativePadding) {
-    af_array dummyIn  = 0;
-    af_array dummyOut = 0;
+    af_array dummyIn  = nullptr;
+    af_array dummyOut = nullptr;
     dim_t ldims[4]    = {-1, 1, 0, 1};
     dim_t udims[4]    = {-1, 1, 0, 1};
     ASSERT_EQ(AF_ERR_SIZE,
@@ -168,8 +168,8 @@ TEST(PadBorders, NegativePadding) {
 }
 
 TEST(PadBorders, NegativeNDims) {
-    af_array dummyIn  = 0;
-    af_array dummyOut = 0;
+    af_array dummyIn  = nullptr;
+    af_array dummyOut = nullptr;
     dim_t ldims[4]    = {1, 1, 0, 1};
     dim_t udims[4]    = {1, 1, 0, 1};
     ASSERT_EQ(AF_ERR_SIZE,
@@ -177,8 +177,8 @@ TEST(PadBorders, NegativeNDims) {
 }
 
 TEST(PadBorders, InvalidPadType) {
-    af_array dummyIn  = 0;
-    af_array dummyOut = 0;
+    af_array dummyIn  = nullptr;
+    af_array dummyOut = nullptr;
     dim_t ldims[4]    = {1, 1, 0, 1};
     dim_t udims[4]    = {1, 1, 0, 1};
     ASSERT_EQ(AF_ERR_ARG, af_pad(&dummyOut, dummyIn, 4, ldims, 4, udims,

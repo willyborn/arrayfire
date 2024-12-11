@@ -628,7 +628,7 @@ void genReorderedArray(TestOutputArrayInfo *metadata, const unsigned ndims,
     for (uint i = 0; i < 4; ++i) { init_dims[i] = all_dims[reorder_idxs[i]]; }
     metadata->init(4, init_dims, ty);
 
-    af_array reordered = 0;
+    af_array reordered = nullptr;
     ASSERT_SUCCESS(af_reorder(&reordered, metadata->getOutput(),
                               reorder_idxs[0], reorder_idxs[1], reorder_idxs[2],
                               reorder_idxs[3]));
@@ -655,7 +655,7 @@ void genReorderedArray(TestOutputArrayInfo *metadata, double val,
     for (uint i = 0; i < 4; ++i) { init_dims[i] = all_dims[reorder_idxs[i]]; }
     metadata->init(val, 4, init_dims, ty);
 
-    af_array reordered = 0;
+    af_array reordered = nullptr;
     ASSERT_SUCCESS(af_reorder(&reordered, metadata->getOutput(),
                               reorder_idxs[0], reorder_idxs[1], reorder_idxs[2],
                               reorder_idxs[3]));
@@ -747,7 +747,7 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 // To support C API
 ::testing::AssertionResult assertArrayEq(std::string aName, std::string bName,
                                          const af_array a, const af_array b) {
-    af_array aa = 0, bb = 0;
+    af_array aa = nullptr, bb = nullptr;
     af_retain_array(&aa, a);
     af_retain_array(&bb, b);
     af::array aaa(aa);
@@ -771,7 +771,7 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
                                            const af_array &a, const af_array &b,
                                            float maxAbsDiff) {
     UNUSED(maxAbsDiffName);
-    af_array aa = 0, bb = 0;
+    af_array aa = nullptr, bb = nullptr;
     af_retain_array(&aa, a);
     af_retain_array(&bb, b);
     af::array aaa(aa);
@@ -794,7 +794,7 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
                                            std::string maxAbsDiffName,
                                            const af_array a, const af_array b,
                                            float maxAbsDiff) {
-    af_array aa = 0, bb = 0;
+    af_array aa = nullptr, bb = nullptr;
     af_retain_array(&aa, a);
     af_retain_array(&bb, b);
     af::array aaa(aa);
@@ -1132,18 +1132,18 @@ INSTANTIATE(char);
 #undef INSTANTIATE
 
 TestOutputArrayInfo::TestOutputArrayInfo()
-    : out_arr(0)
-    , out_arr_cpy(0)
-    , out_subarr(0)
+    : out_arr(nullptr)
+    , out_arr_cpy(nullptr)
+    , out_subarr(nullptr)
     , out_subarr_ndims(0)
     , out_arr_type(NULL_ARRAY) {
     for (uint i = 0; i < 4; ++i) { out_subarr_idxs[i] = af_span; }
 }
 
 TestOutputArrayInfo::TestOutputArrayInfo(TestOutputArrayType arr_type)
-    : out_arr(0)
-    , out_arr_cpy(0)
-    , out_subarr(0)
+    : out_arr(nullptr)
+    , out_arr_cpy(nullptr)
+    , out_subarr(nullptr)
     , out_subarr_ndims(0)
     , out_arr_type(arr_type) {
     for (uint i = 0; i < 4; ++i) { out_subarr_idxs[i] = af_span; }
@@ -1210,7 +1210,7 @@ af_array TestOutputArrayInfo::getOutput() {
 }
 
 void TestOutputArrayInfo::setOutput(af_array array) {
-    if (out_arr != 0) { ASSERT_SUCCESS(af_release_array(out_arr)); }
+    if (out_arr != nullptr) { ASSERT_SUCCESS(af_release_array(out_arr)); }
     out_arr = array;
 }
 
@@ -1318,7 +1318,7 @@ TestOutputArrayType TestOutputArrayInfo::getOutputArrayType() {
 // TODO: perform conversion on device for CUDA and OpenCL
 template<typename T>
 af_err conv_image(af_array *out, af_array in) {
-    af_array outArray;
+    af_array outArray = nullptr;
 
     dim_t d0, d1, d2, d3;
     af_get_dims(&d0, &d1, &d2, &d3, in);
@@ -1926,7 +1926,7 @@ template<typename T>
                                          std::string bName,
                                          const std::vector<T> &hA,
                                          af::dim4 aDims, const af_array b) {
-    af_array bb = 0;
+    af_array bb = nullptr;
     af_retain_array(&bb, b);
     af::array bbb(bb);
     return assertArrayEq(hA_name, aDimsName, bName, hA, aDims, bbb);
@@ -1948,7 +1948,7 @@ template<typename T>
     std::string hA_name, std::string aDimsName, std::string bName,
     std::string maxAbsDiffName, const std::vector<T> &hA, af::dim4 aDims,
     const af_array b, float maxAbsDiff) {
-    af_array bb = 0;
+    af_array bb = nullptr;
     af_retain_array(&bb, b);
     af::array bbb(bb);
     return assertArrayNear(hA_name, aDimsName, bName, maxAbsDiffName, hA, aDims,

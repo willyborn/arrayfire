@@ -61,21 +61,21 @@ class IndexGeneralizedLegacy : public ::testing::TestWithParam<index_params> {
         dim4 dims0 = numDims[0];
         dim4 dims1 = numDims[1];
 
-        af_array inTmp = 0;
+        af_array inTmp = nullptr;
         ASSERT_SUCCESS(af_create_array(&inTmp, &(in[0].front()), dims0.ndims(),
                                        dims0.get(), f32));
 
         ASSERT_SUCCESS(af_cast(&inArray_, inTmp, get<1>(params)));
         af_release_array(inTmp);
 
-        af_array idxTmp = 0;
+        af_array idxTmp = nullptr;
         ASSERT_SUCCESS(af_create_array(&idxTmp, &(in[1].front()), dims1.ndims(),
                                        dims1.get(), f32));
         ASSERT_SUCCESS(af_cast(&idxArray_, idxTmp, get<2>(params)));
         af_release_array(idxTmp);
 
         vector<float> hgold = tests[0];
-        af_array goldTmp;
+        af_array goldTmp    = nullptr;
         af_create_array(&goldTmp, &hgold.front(), get<0>(params).dims_.ndims(),
                         get<0>(params).dims_.get(), f32);
         ASSERT_SUCCESS(af_cast(&gold_, goldTmp, get<1>(params)));
@@ -85,11 +85,12 @@ class IndexGeneralizedLegacy : public ::testing::TestWithParam<index_params> {
     void TearDown() {
         if (inArray_) { ASSERT_SUCCESS(af_release_array(inArray_)); }
         if (idxArray_) { ASSERT_SUCCESS(af_release_array(idxArray_)); }
-        if (gold_) { ASSERT_SUCCESS(af_release_array(gold_)); }
+        if (gold_ != nullptr) { ASSERT_SUCCESS(af_release_array(gold_)); }
     }
 
    public:
-    IndexGeneralizedLegacy() : gold_(0), inArray_(0), idxArray_(0) {}
+    IndexGeneralizedLegacy()
+        : gold_(nullptr), inArray_(nullptr), idxArray_(nullptr) {}
 
     af_array gold_;
     af_array inArray_;
@@ -120,7 +121,7 @@ TEST_P(IndexGeneralizedLegacy, SSSA) {
     if (noDoubleTests(get<2>(params))) return;
     if (noHalfTests(get<2>(params))) return;
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
     af_index_t indexes[4];
     indexes[0].idx.seq = af_make_seq(0, 3, 1);
     indexes[1].idx.seq = af_make_seq(0, 1, 1);
@@ -145,9 +146,9 @@ void testGeneralIndexOneArray(string pTestFile, const dim_t ndims,
 
     dim4 dims0        = numDims[0];
     dim4 dims1        = numDims[1];
-    af_array outArray = 0;
-    af_array inArray  = 0;
-    af_array idxArray = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
+    af_array idxArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims0.ndims(),
                                    dims0.get(),
@@ -211,10 +212,10 @@ TEST(GeneralIndex, AASS) {
     dim4 dims0         = numDims[0];
     dim4 dims1         = numDims[1];
     dim4 dims2         = numDims[2];
-    af_array outArray  = 0;
-    af_array inArray   = 0;
-    af_array idxArray0 = 0;
-    af_array idxArray1 = 0;
+    af_array outArray  = nullptr;
+    af_array inArray   = nullptr;
+    af_array idxArray0 = nullptr;
+    af_array idxArray1 = nullptr;
 
     af_index_t indexs[2];
 

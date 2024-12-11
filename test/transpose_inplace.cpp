@@ -41,8 +41,8 @@ template<typename T>
 void transposeip_test(dim4 dims) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_randu(&inArray, dims.ndims(), dims.get(),
                             (af_dtype)dtype_traits<T>::af_type));

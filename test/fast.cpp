@@ -81,8 +81,8 @@ void fastTest(string pTestFile, bool nonmax) {
 
     for (size_t testId = 0; testId < testCount; ++testId) {
         dim_t nElems         = 0;
-        af_array inArray_f32 = 0;
-        af_array inArray     = 0;
+        af_array inArray_f32 = nullptr;
+        af_array inArray     = nullptr;
         af_features out;
 
         inFiles[testId].insert(0, string(TEST_DIR "/fast/"));
@@ -94,8 +94,9 @@ void fastTest(string pTestFile, bool nonmax) {
 
         ASSERT_SUCCESS(af_fast(&out, inArray, 20.0f, 9, nonmax, 0.05f, 3));
 
-        dim_t n = 0;
-        af_array x, y, score, orientation, size;
+        dim_t n    = 0;
+        af_array x = nullptr, y = nullptr, score = nullptr,
+                 orientation = nullptr, size = nullptr;
 
         ASSERT_SUCCESS(af_get_features_num(&n, out));
         ASSERT_SUCCESS(af_get_features_xpos(&x, out));

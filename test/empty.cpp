@@ -276,7 +276,7 @@ TEST(Array, TestEmptyImage) {
     ASSERT_EQ(gray2rgb(constant(0, 0)).numdims(), 0u);
     ASSERT_EQ(rotate(constant(0, 0), 0).numdims(), 0u);
 
-    af_array h, hout;
+    af_array h = nullptr, hout = nullptr;
     dim_t ds[1];
     af_constant(&h, 0, 0, ds, f32);
     af_histogram(&hout, h, 10, 0.0, 1.0);

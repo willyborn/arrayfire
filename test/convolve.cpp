@@ -52,9 +52,9 @@ void convolveTest(string pTestFile, int baseDim, bool expand) {
 
     dim4 sDims        = numDims[0];
     dim4 fDims        = numDims[1];
-    af_array signal   = 0;
-    af_array filter   = 0;
-    af_array outArray = 0;
+    af_array signal   = nullptr;
+    af_array filter   = nullptr;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&signal, &(in[0].front()), sDims.ndims(),
                                    sDims.get(),
@@ -226,10 +226,10 @@ void sepConvolveTest(string pTestFile, bool expand) {
     dim4 sDims        = numDims[0];
     dim4 cfDims       = numDims[1];
     dim4 rfDims       = numDims[2];
-    af_array signal   = 0;
-    af_array c_filter = 0;
-    af_array r_filter = 0;
-    af_array outArray = 0;
+    af_array signal   = nullptr;
+    af_array c_filter = nullptr;
+    af_array r_filter = nullptr;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&signal, &(in[0].front()), sDims.ndims(),
                                    sDims.get(),
@@ -313,10 +313,10 @@ TEST(Convolve, Separable_TypeCheck) {
     vector<float> in(10, 1);
     vector<int> filt(4, 1);
 
-    af_array signal   = 0;
-    af_array c_filter = 0;
-    af_array r_filter = 0;
-    af_array outArray = 0;
+    af_array signal   = nullptr;
+    af_array c_filter = nullptr;
+    af_array r_filter = nullptr;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&signal, &(in.front()), sDims.ndims(),
                                    sDims.get(),
@@ -343,10 +343,10 @@ TEST(Convolve, Separable_DimCheck) {
     vector<float> in(10, 1);
     vector<int> filt(4, 1);
 
-    af_array signal   = 0;
-    af_array c_filter = 0;
-    af_array r_filter = 0;
-    af_array outArray = 0;
+    af_array signal   = nullptr;
+    af_array c_filter = nullptr;
+    af_array r_filter = nullptr;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&signal, &(in.front()), sDims.ndims(),
                                    sDims.get(),
@@ -924,9 +924,9 @@ void convolve2stridedTest(string pTestFile, dim4 stride, dim4 padding,
 
     dim4 sDims         = numDims[0];
     dim4 fDims         = numDims[1];
-    af_array signal    = 0;
-    af_array filter    = 0;
-    af_array convolved = 0;
+    af_array signal    = nullptr;
+    af_array filter    = nullptr;
+    af_array convolved = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&signal, &(in[0].front()), sDims.ndims(),
                                    sDims.get(),
@@ -969,9 +969,9 @@ void convolve2GradientTest(string pTestFile, dim4 stride, dim4 padding,
 
     dim4 sDims         = numDims[0];
     dim4 fDims         = numDims[1];
-    af_array signal    = 0;
-    af_array filter    = 0;
-    af_array convolved = 0;
+    af_array signal    = nullptr;
+    af_array filter    = nullptr;
+    af_array convolved = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&signal, &(in[0].front()), sDims.ndims(),
                                    sDims.get(),
@@ -996,18 +996,18 @@ void convolve2GradientTest(string pTestFile, dim4 stride, dim4 padding,
                                    cDims.ndims(), cDims.get(),
                                    (af_dtype)dtype_traits<T>::af_type));
 
-    af_array incoming_gradient = 0;
+    af_array incoming_gradient = nullptr;
     ASSERT_SUCCESS(af_constant(&incoming_gradient, 1, cDims.ndims(),
                                cDims.get(),
                                (af_dtype)dtype_traits<T>::af_type));
 
-    af_array filter_gradient = 0;
+    af_array filter_gradient = nullptr;
     ASSERT_SUCCESS(af_convolve2_gradient_nn(
         &filter_gradient, incoming_gradient, signal, filter, convolved,
         stride.ndims(), stride.get(), padding.ndims(), padding.get(),
         dilation.ndims(), dilation.get(), AF_CONV_GRADIENT_FILTER));
 
-    af_array data_gradient = 0;
+    af_array data_gradient = nullptr;
     ASSERT_SUCCESS(af_convolve2_gradient_nn(
         &data_gradient, incoming_gradient, signal, filter, convolved,
         stride.ndims(), stride.get(), padding.ndims(), padding.get(),

@@ -57,7 +57,7 @@ void MatMulCheck(string TestFile) {
     vector<vector<T>> tests;
     readTests<T, T, int>(TestFile, numDims, hData, tests);
 
-    af_array a, aT, b, bT;
+    af_array a = nullptr, aT = nullptr, b = nullptr, bT = nullptr;
     ASSERT_SUCCESS(af_create_array(&a, &hData[0].front(), numDims[0].ndims(),
                                    numDims[0].get(),
                                    (af_dtype)dtype_traits<T>::af_type));
@@ -461,7 +461,7 @@ float h_gold_batch[18] = {
 TEST(MatrixMultiply, float) {
     array A32           = array(3, 3, h_lhs);
     array B32           = array(3, 3, h_rhs);
-    af_array C32        = 0;
+    af_array C32        = nullptr;
     const float alpha32 = 1.0f;
     const float beta32  = 0.0f;
     af_gemm(&C32, AF_MAT_NONE, AF_MAT_NONE, &alpha32, A32.get(), B32.get(),
@@ -478,7 +478,7 @@ TEST(MatrixMultiply, half) {
     array expected16 = array(3, 3, h_gold).as(f16);
 
     {
-        af_array C16 = 0;
+        af_array C16 = nullptr;
         const half_float::half alpha16(1.0f);
         const half_float::half beta16(0.0f);
         ASSERT_SUCCESS(af_gemm(&C16, AF_MAT_NONE, AF_MAT_NONE, &alpha16,
@@ -532,10 +532,10 @@ class Gemm : public ::testing::TestWithParam<test_params> {
     void SetUp() {
         test_params params = GetParam();
 
-        lhs  = 0;
-        rhs  = 0;
-        out  = 0;
-        gold = 0;
+        lhs  = nullptr;
+        rhs  = nullptr;
+        out  = nullptr;
+        gold = nullptr;
 
         ASSERT_SUCCESS(af_create_array(&lhs, params.h_lhs,
                                        params.lhs_dims.ndims(),
@@ -680,7 +680,7 @@ TEST_P(Gemm, UsePreallocatedOutArray) {
 
 TEST(Gemm, DocSnippet) {
     //! [ex_af_gemm_alloc]
-    af_array A, B;
+    af_array A = nullptr, B = nullptr;
 
     dim_t adims[] = {5, 3, 2};
     dim_t bdims[] = {3, 5, 2};
@@ -695,7 +695,7 @@ TEST(Gemm, DocSnippet) {
     // af_gemm(&undef, AF_MAT_NONE, AF_MAT_NONE, &alpha, a.get(), b.get(),
     // &beta);
 
-    af_array C = 0;
+    af_array C = nullptr;
     af_gemm(&C, AF_MAT_NONE, AF_MAT_NONE, &alpha, A, B, &beta);
     // C =
     //  3.   3.   3.   3.   3.
@@ -712,7 +712,7 @@ TEST(Gemm, DocSnippet) {
 
     //! [ex_af_gemm_alloc]
 
-    af_array c1_copy = 0;
+    af_array c1_copy = nullptr;
     ASSERT_SUCCESS(af_retain_array(&c1_copy, C));
     af::array c1(c1_copy);
     af::array gold1 = af::constant(3, 5, 5, 2, f32);
@@ -722,7 +722,7 @@ TEST(Gemm, DocSnippet) {
     alpha                = 1.f;
     beta                 = 1.f;
     af_seq first_slice[] = {af_span, af_span, {0., 0., 1.}};
-    af_array Asub, Bsub, Csub;
+    af_array Asub = nullptr, Bsub = nullptr, Csub = nullptr;
     af_index(&Asub, A, 3, first_slice);
     af_index(&Bsub, B, 3, first_slice);
     af_index(&Csub, C, 3, first_slice);
@@ -741,7 +741,7 @@ TEST(Gemm, DocSnippet) {
     //  3.   3.   3.   3.   3.
     //! [ex_af_gemm_overwrite]
 
-    af_array c2_copy = 0;
+    af_array c2_copy = nullptr;
     ASSERT_SUCCESS(af_retain_array(&c2_copy, C));
     af::array c2(c2_copy);
     vector<float> gold2(5 * 5 * 2, 3);

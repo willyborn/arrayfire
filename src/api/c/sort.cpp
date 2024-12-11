@@ -96,8 +96,8 @@ af_err af_sort_index(af_array *out, af_array *indices, const af_array in,
             return AF_SUCCESS;
         }
 
-        af_array val;
-        af_array idx;
+        af_array val = nullptr;
+        af_array idx = nullptr;
 
         switch (type) {
             case f32:
@@ -213,8 +213,8 @@ af_err af_sort_by_key(af_array *out_keys, af_array *out_values,
 
         TYPE_ASSERT(kinfo.isReal());
 
-        af_array oKey;
-        af_array oVal;
+        af_array oKey = nullptr;
+        af_array oVal = nullptr;
 
         switch (ktype) {
             case f32:

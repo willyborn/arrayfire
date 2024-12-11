@@ -55,18 +55,18 @@ void iterDeconvImageTest(string pTestFile, const unsigned iters, const float rf,
         inFiles[testId].insert(0, string(TEST_DIR "/iterative_deconv/"));
         outFiles[testId].insert(0, string(TEST_DIR "/iterative_deconv/"));
 
-        af_array _inArray   = 0;
-        af_array inArray    = 0;
-        af_array kerArray   = 0;
-        af_array _outArray  = 0;
-        af_array cstArray   = 0;
-        af_array minArray   = 0;
-        af_array numArray   = 0;
-        af_array denArray   = 0;
-        af_array divArray   = 0;
-        af_array outArray   = 0;
-        af_array goldArray  = 0;
-        af_array _goldArray = 0;
+        af_array _inArray   = nullptr;
+        af_array inArray    = nullptr;
+        af_array kerArray   = nullptr;
+        af_array _outArray  = nullptr;
+        af_array cstArray   = nullptr;
+        af_array minArray   = nullptr;
+        af_array numArray   = nullptr;
+        af_array denArray   = nullptr;
+        af_array divArray   = nullptr;
+        af_array outArray   = nullptr;
+        af_array goldArray  = nullptr;
+        af_array _goldArray = nullptr;
         dim_t nElems        = 0;
 
         ASSERT_SUCCESS(af_gaussian_kernel(&kerArray, 13, 13, 2.25, 2.25));

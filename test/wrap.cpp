@@ -262,8 +262,8 @@ static void getGold(af_array *gold, const dim_t *dims) {
 class WrapCommon : virtual public ::testing::Test {
    protected:
     WrapCommon()
-        : in_(0)
-        , gold_(0)
+        : in_(nullptr)
+        , gold_(nullptr)
         , in_dims(4, 4)
         , gold_dims(4, 4)
         , win_len(2)
@@ -277,8 +277,8 @@ class WrapCommon : virtual public ::testing::Test {
     }
 
     virtual void TearDown() {
-        if (in_ != 0) af_release_array(in_);
-        if (gold_ != 0) af_release_array(gold_);
+        if (in_ != nullptr) af_release_array(in_);
+        if (gold_ != nullptr) af_release_array(gold_);
     }
 
     af_array in_;
@@ -302,8 +302,8 @@ class WrapV2 : public WrapCommon {
     void setTestData(float *h_gold, dim4 gold_dims, float *h_in, dim4 in_dims) {
         releaseArrays();
 
-        this->gold_ = 0;
-        this->in_   = 0;
+        this->gold_ = nullptr;
+        this->in_   = nullptr;
 
         this->gold_dims = gold_dims;
         this->in_dims   = in_dims;
@@ -326,7 +326,7 @@ class WrapV2 : public WrapCommon {
     void testSpclOutArray(TestOutputArrayType out_array_type) {
         SUPPORTED_TYPE_CHECK(T);
 
-        af_array out = 0;
+        af_array out = nullptr;
         TestOutputArrayInfo metadata(out_array_type);
         if (out_array_type == NULL_ARRAY) {
             genTestOutputArray(&out, this->gold_dims.ndims(),
@@ -349,8 +349,8 @@ class WrapV2 : public WrapCommon {
     }
 
     void releaseArrays() {
-        if (this->in_ != 0) { ASSERT_SUCCESS(af_release_array(this->in_)); }
-        if (this->gold_ != 0) { ASSERT_SUCCESS(af_release_array(this->gold_)); }
+        ASSERT_SUCCESS(af_release_array(this->in_));
+        ASSERT_SUCCESS(af_release_array(this->gold_));
     }
 };
 
@@ -362,11 +362,11 @@ class WrapV2Simple : public WrapV2<T> {
     void SetUp() {
         SUPPORTED_TYPE_CHECK(T);
         this->releaseArrays();
-        this->in_   = 0;
-        this->gold_ = 0;
+        this->in_   = nullptr;
+        this->gold_ = nullptr;
 
-        af_array tmp_in   = 0;
-        af_array tmp_gold = 0;
+        af_array tmp_in   = nullptr;
+        af_array tmp_gold = nullptr;
 
         ::getInput(&tmp_in, this->in_dims.get());
         ::getGold(&tmp_gold, this->gold_dims.get());
@@ -401,7 +401,7 @@ TYPED_TEST(WrapV2Simple, UseReorderedOutputArray) {
 class WrapNullArgs : public WrapCommon {};
 
 TEST_F(WrapNullArgs, NullOutputPtr) {
-    af_array *out_ptr = 0;
+    af_array *out_ptr = nullptr;
     ASSERT_EQ(af_wrap(out_ptr, this->in_, 4, 4,  // output dims
                       2, 2,                      // window size
                       2, 2,                      // stride
@@ -411,7 +411,7 @@ TEST_F(WrapNullArgs, NullOutputPtr) {
 }
 
 TEST_F(WrapNullArgs, NullInputArray) {
-    af_array out = 0;
+    af_array out = nullptr;
     ASSERT_EQ(af_wrap(&out, 0, 4, 4,  // output dims
                       2, 2,           // window size
                       2, 2,           // stride
@@ -421,7 +421,7 @@ TEST_F(WrapNullArgs, NullInputArray) {
 }
 
 TEST_F(WrapNullArgs, V2NullOutputPtr) {
-    af_array *out_ptr = 0;
+    af_array *out_ptr = nullptr;
     ASSERT_EQ(af_wrap_v2(out_ptr, this->in_, 4, 4,  // output dims
                          2, 2,                      // window size
                          2, 2,                      // stride
@@ -431,7 +431,7 @@ TEST_F(WrapNullArgs, V2NullOutputPtr) {
 }
 
 TEST_F(WrapNullArgs, V2NullInputArray) {
-    af_array out = 0;
+    af_array out = nullptr;
     ASSERT_EQ(af_wrap_v2(&out, 0, 4, 4,  // output dims
                          2, 2,           // window size
                          2, 2,           // stride
@@ -486,7 +486,7 @@ class WrapAPITest
     : public WrapCommon
     , public ::testing::WithParamInterface<WrapArgs> {
    public:
-    WrapAPITest() : input(), in_(0), in_dims(4, 4, 1, 1) {}
+    WrapAPITest() : input(), in_(nullptr), in_dims(4, 4, 1, 1) {}
 
     virtual void SetUp() {
         input = GetParam();
@@ -509,9 +509,9 @@ TEST_P(WrapAPITest, CheckDifferentWrapArgs) {
     dim_t pad_d0 = input.pc_.dim0;
     dim_t pad_d1 = input.pc_.dim1;
 
-    af_array out_ = 0;
+    af_array out_ = nullptr;
     af_err err    = af_wrap(&out_, in_, in_dims[0], in_dims[1], win_d0, win_d1,
-                            str_d0, str_d1, pad_d0, pad_d1, input.is_column);
+                         str_d0, str_d1, pad_d0, pad_d1, input.is_column);
 
     ASSERT_EQ(err, input.err);
     if (out_ != 0) af_release_array(out_);

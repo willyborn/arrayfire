@@ -62,19 +62,19 @@ unsigned long long randomEngine::getSeed() const {
 af_random_engine randomEngine::get() const { return engine; }
 
 array randu(const dim4 &dims, const dtype ty, randomEngine &r) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_random_uniform(&out, dims.ndims(), dims.get(), ty, r.get()));
     return array(out);
 }
 
 array randn(const dim4 &dims, const dtype ty, randomEngine &r) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_random_normal(&out, dims.ndims(), dims.get(), ty, r.get()));
     return array(out);
 }
 
 array randu(const dim4 &dims, const af::dtype type) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_randu(&res, dims.ndims(), dims.get(), type));
     return array(res);
 }
@@ -96,7 +96,7 @@ array randu(const dim_t d0, const dim_t d1, const dim_t d2, const dim_t d3,
 }
 
 array randn(const dim4 &dims, const af::dtype type) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_randn(&res, dims.ndims(), dims.get(), type));
     return array(res);
 }

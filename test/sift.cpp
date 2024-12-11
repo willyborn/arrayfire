@@ -151,9 +151,9 @@ void siftTest(string pTestFile, unsigned nLayers, float contrastThr,
     size_t testCount = inDims.size();
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array inArray_f32 = 0;
-        af_array inArray     = 0;
-        af_array desc        = 0;
+        af_array inArray_f32 = nullptr;
+        af_array inArray     = nullptr;
+        af_array desc        = nullptr;
         af_features feat;
 
         inFiles[testId].insert(0, string(TEST_DIR "/sift/"));
@@ -166,8 +166,9 @@ void siftTest(string pTestFile, unsigned nLayers, float contrastThr,
                                edgeThr, initSigma, doubleInput, 1.f / 256.f,
                                0.05f));
 
-        dim_t n = 0;
-        af_array x, y, score, orientation, size;
+        dim_t n    = 0;
+        af_array x = nullptr, y = nullptr, score = nullptr,
+                 orientation = nullptr, size = nullptr;
 
         ASSERT_SUCCESS(af_get_features_num(&n, feat));
         ASSERT_SUCCESS(af_get_features_xpos(&x, feat));

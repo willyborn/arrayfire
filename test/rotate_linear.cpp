@@ -60,9 +60,9 @@ void rotateTest(string pTestFile, const unsigned resultIdx, const float angle,
 
     dim4 dims = numDims[0];
 
-    af_array inArray   = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
 
     float theta = angle * PI / 180.0f;
 

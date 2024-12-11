@@ -60,9 +60,9 @@ void shiftTest(string pTestFile, const unsigned resultIdx, const int x,
 
     dim4 idims = numDims[0];
 
-    af_array inArray   = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
 
     if (isSubRef) {
         ASSERT_SUCCESS(af_create_array(&tempArray, &(in[0].front()),

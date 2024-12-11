@@ -24,7 +24,7 @@ using detail::cfloat;
 
 af_err af_fir(af_array* y, const af_array b, const af_array x) {
     try {
-        af_array out;
+        af_array out = nullptr;
         AF_CHECK(af_convolve1(&out, x, b, AF_CONV_EXPAND, AF_CONV_AUTO));
 
         dim4 xdims    = getInfo(x).dims();
@@ -32,7 +32,7 @@ af_err af_fir(af_array* y, const af_array b, const af_array x) {
         seqs[0].begin = 0.;
         seqs[0].end   = static_cast<double>(xdims[0]) - 1.;
         seqs[0].step  = 1.;
-        af_array res;
+        af_array res  = nullptr;
         AF_CHECK(af_index(&res, out, 4, seqs));
         AF_CHECK(af_release_array(out));
         std::swap(*y, res);

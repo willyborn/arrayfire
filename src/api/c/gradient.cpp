@@ -34,8 +34,8 @@ af_err af_gradient(af_array *grows, af_array *gcols, const af_array in) {
 
         DIM_ASSERT(2, info.elements() > 0);
 
-        af_array grad0;
-        af_array grad1;
+        af_array grad0 = nullptr;
+        af_array grad1 = nullptr;
         AF_CHECK(af_create_handle(&grad0, idims.ndims(), idims.get(), type));
         AF_CHECK(af_create_handle(&grad1, idims.ndims(), idims.get(), type));
 

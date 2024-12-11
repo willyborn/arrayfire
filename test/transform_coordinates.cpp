@@ -43,8 +43,8 @@ void transformCoordinatesTest(string pTestFile) {
 
     readTests<T, float, float>(pTestFile, inDims, in, gold);
 
-    af_array tfArray  = 0;
-    af_array outArray = 0;
+    af_array tfArray  = nullptr;
+    af_array outArray = nullptr;
     ASSERT_SUCCESS(af_create_array(&tfArray, &(in[0].front()),
                                    inDims[0].ndims(), inDims[0].get(),
                                    (af_dtype)dtype_traits<T>::af_type));

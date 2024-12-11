@@ -65,7 +65,7 @@ void rangeTest(const uint x, const uint y, const uint z, const uint w,
 
     dim4 idims(x, y, z, w);
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_range(&outArray, idims.ndims(), idims.get(), dim,
                             (af_dtype)dtype_traits<T>::af_type));

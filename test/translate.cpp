@@ -56,8 +56,8 @@ void translateTest(string pTestFile, const unsigned resultIdx, dim4 odims,
     vector<vector<float>> tests;
     readTests<T, float, float>(pTestFile, numDims, in, tests);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims = numDims[0];
 

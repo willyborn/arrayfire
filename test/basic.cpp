@@ -25,7 +25,7 @@ TEST(BasicTests, constant1000x1000) {
     dim_t d[ndims]            = {dim_size, dim_size};
 
     double valA = 3.9;
-    af_array a;
+    af_array a  = nullptr;
     ASSERT_SUCCESS(af_constant(&a, valA, ndims, d, f32));
 
     vector<float> h_a(dim_size * dim_size, 100);
@@ -43,7 +43,7 @@ TEST(BasicTests, constant10x10) {
     dim_t d[2]                = {dim_size, dim_size};
 
     double valA = 3.9;
-    af_array a;
+    af_array a  = nullptr;
     ASSERT_SUCCESS(af_constant(&a, valA, ndims, d, f32));
 
     vector<float> h_a(dim_size * dim_size, 0);
@@ -61,7 +61,7 @@ TEST(BasicTests, constant100x100) {
     dim_t d[2]                = {dim_size, dim_size};
 
     double valA = 4.9;
-    af_array a;
+    af_array a  = nullptr;
     ASSERT_SUCCESS(af_constant(&a, valA, ndims, d, f32));
 
     vector<float> h_a(dim_size * dim_size, 0);
@@ -85,8 +85,8 @@ TEST(BasicTests, AdditionSameType) {
     double valB  = 5.7;
     double valCf = valA + valB;
 
-    af_array af32, bf32, cf32;
-    af_array af64, bf64, cf64;
+    af_array af32 = nullptr, bf32 = nullptr, cf32 = nullptr;
+    af_array af64 = nullptr, bf64 = nullptr, cf64 = nullptr;
 
     ASSERT_SUCCESS(af_constant(&af32, valA, ndims, d, f32));
     ASSERT_SUCCESS(af_constant(&af64, valA, ndims, d, f64));
@@ -132,7 +132,7 @@ TEST(BasicTests, Additionf64f64) {
     double valB = 5.7;
     double valC = valA + valB;
 
-    af_array a, b, c;
+    af_array a = nullptr, b = nullptr, c = nullptr;
 
     ASSERT_SUCCESS(af_constant(&a, valA, ndims, d, f64));
     ASSERT_SUCCESS(af_constant(&b, valB, ndims, d, f64));
@@ -167,7 +167,7 @@ TEST(BasicTests, Additionf32f64) {
     double valB = 5.7;
     double valC = valA + valB;
 
-    af_array a, b, c;
+    af_array a = nullptr, b = nullptr, c = nullptr;
 
     ASSERT_SUCCESS(af_constant(&a, valA, ndims, d, f32));
     ASSERT_SUCCESS(af_constant(&b, valB, ndims, d, f64));
@@ -299,8 +299,8 @@ TEST(Assert, TestEqualsCpp) {
 }
 
 TEST(Assert, TestEqualsC) {
-    af_array gold = 0;
-    af_array out  = 0;
+    af_array gold = nullptr;
+    af_array out  = nullptr;
     dim_t dims[]  = {10, 10, 1, 1};
     af_constant(&gold, 1.0, 4, dims, f32);
     af_constant(&out, 1.0, 4, dims, f32);
@@ -423,8 +423,8 @@ TEST(Assert, TestVectorDiffVecSize) {
 }
 
 TEST(Assert, TestArraysNearC) {
-    af_array gold = 0;
-    af_array out  = 0;
+    af_array gold = nullptr;
+    af_array out  = nullptr;
     dim_t dims[]  = {10, 10, 1, 1};
     af_constant(&gold, 2.2345f, 4, dims, f32);
     af_constant(&out, 2.2346f, 4, dims, f32);
@@ -444,7 +444,7 @@ TEST(Assert, TestVecArrayNearC) {
     fill(gold.begin(), gold.end(), 2.2345f);
     dim4 goldDims(3, 3);
 
-    af_array out = 0;
+    af_array out = nullptr;
     dim_t dims[] = {3, 3, 1, 1};
     af_constant(&out, 2.2346f, 4, dims, f32);
 

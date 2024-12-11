@@ -317,7 +317,7 @@ af_err af_load_image(af_array* out, const char* filename, const bool isColor) {
             _.FreeImage_GetBits(pBitmap.get()) + nSrcPitch * (fi_h - 1);
 
         // result image
-        af_array rImage;
+        af_array rImage = nullptr;
         if (isColor) {
             if (fi_color == 4) {  // 4 channel image
                 if (fi_bpc == 8) {
@@ -571,7 +571,7 @@ af_err af_save_image(const char* filename, const af_array in_) {
 
         // FI assumes [0-255]
         // If array is in 0-1 range, multiply by 255
-        af_array in;
+        af_array in = nullptr;
         double max_real, max_imag;
         bool free_in = false;
         AF_CHECK(af_max_all(&max_real, &max_imag, in_));
@@ -801,7 +801,7 @@ af_err af_load_image_memory(af_array* out, const void* ptr) {
             _.FreeImage_GetBits(pBitmap.get()) + nSrcPitch * (fi_h - 1);
 
         // result image
-        af_array rImage;
+        af_array rImage = nullptr;
         if (fi_color == 4) {  // 4 channel image
             if (fi_bpc == 8) {
                 AF_CHECK((readImage<uchar, AFFI_RGBA, AFFI_RGBA>)(&rImage,
@@ -895,12 +895,12 @@ af_err af_save_image_memory(void** ptr, const af_array in_,
 
         // FI assumes [0-255]
         // If array is in 0-1 range, multiply by 255
-        af_array in;
+        af_array in = nullptr;
         double max_real, max_imag;
         bool free_in = false;
         AF_CHECK(af_max_all(&max_real, &max_imag, in_));
         if (max_real <= 1) {
-            af_array c255;
+            af_array c255 = nullptr;
             AF_CHECK(af_constant(&c255, 255.0, info.ndims(), info.dims().get(),
                                  f32));
             AF_CHECK(af_mul(&in, in_, c255, false));

@@ -49,12 +49,12 @@ template<typename T>
 void iotaTest(const dim4 idims, const dim4 tdims) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_iota(&outArray, idims.ndims(), idims.get(), tdims.ndims(),
                            tdims.get(), (af_dtype)dtype_traits<T>::af_type));
 
-    af_array temp0 = 0, temp1 = 0, temp2 = 0;
+    af_array temp0 = nullptr, temp1 = nullptr, temp2 = nullptr;
     dim4 tempdims(idims.elements());
     dim4 fulldims;
     for (unsigned i = 0; i < 4; i++) { fulldims[i] = idims[i] * tdims[i]; }

@@ -48,9 +48,9 @@ void morphTest(string pTestFile) {
 
     dim4 dims          = numDims[0];
     dim4 maskDims      = numDims[1];
-    af_array outArray  = 0;
-    af_array inArray   = 0;
-    af_array maskArray = 0;
+    af_array outArray  = nullptr;
+    af_array inArray   = nullptr;
+    af_array maskArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
@@ -148,12 +148,12 @@ void morphImageTest(string pTestFile, dim_t seLen) {
     size_t testCount = inDims.size();
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array _inArray   = 0;
-        af_array inArray    = 0;
-        af_array maskArray  = 0;
-        af_array outArray   = 0;
-        af_array _goldArray = 0;
-        af_array goldArray  = 0;
+        af_array _inArray   = nullptr;
+        af_array inArray    = nullptr;
+        af_array maskArray  = nullptr;
+        af_array outArray   = nullptr;
+        af_array _goldArray = nullptr;
+        af_array goldArray  = nullptr;
         dim_t nElems        = 0;
 
         inFiles[testId].insert(0, string(TEST_DIR "/morph/"));
@@ -235,9 +235,9 @@ template<typename T, bool isDilation>
 void morphInputTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray   = 0;
-    af_array maskArray = 0;
-    af_array outArray  = 0;
+    af_array inArray   = nullptr;
+    af_array maskArray = nullptr;
+    af_array outArray  = nullptr;
 
     vector<T> in(100, 1);
     vector<T> mask(9, 1);
@@ -272,9 +272,9 @@ template<typename T, bool isDilation>
 void morphMaskTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray   = 0;
-    af_array maskArray = 0;
-    af_array outArray  = 0;
+    af_array inArray   = nullptr;
+    af_array maskArray = nullptr;
+    af_array outArray  = nullptr;
 
     vector<T> in(100, 1);
     vector<T> mask(16, 1);
@@ -323,9 +323,9 @@ template<typename T, bool isDilation>
 void morph3DMaskTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray   = 0;
-    af_array maskArray = 0;
-    af_array outArray  = 0;
+    af_array inArray   = nullptr;
+    af_array maskArray = nullptr;
+    af_array outArray  = nullptr;
 
     vector<T> in(1000, 1);
     vector<T> mask(81, 1);
@@ -458,11 +458,11 @@ TEST(Morph, EdgeIssue1564) {
                               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
                               0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1};
     int goldData[10 * 10]  = {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0,
-                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                              0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-                              0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1,
-                              1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1,
-                              1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1};
+                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+                             0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1,
+                             1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1,
+                             1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1};
     array input(10, 10, inputData);
     int maskData[3 * 3] = {1, 1, 1, 1, 0, 1, 1, 1, 1};
     array mask(3, 3, maskData);
@@ -482,7 +482,7 @@ TEST(Morph, UnsupportedKernel2D) {
     const dim_t dims[2]  = {10, 10};
     const dim_t kdims[2] = {32, 32};
 
-    af_array in, mask, out;
+    af_array in = nullptr, mask = nullptr, out = nullptr;
 
     ASSERT_SUCCESS(af_constant(&mask, 1.0, ndims, kdims, f32));
     ASSERT_SUCCESS(af_randu(&in, ndims, dims, f32));

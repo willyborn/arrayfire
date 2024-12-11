@@ -65,8 +65,8 @@ af_err af_nearest_neighbour(af_array* idx, af_array* dist, const af_array query,
         TYPE_ASSERT(qType == tType);
 
         // For Hamming, only u8, u16, u32 and u64 allowed.
-        af_array oIdx;
-        af_array oDist;
+        af_array oIdx  = nullptr;
+        af_array oDist = nullptr;
 
         if (dist_type == AF_SHD) {
             TYPE_ASSERT(qType == u8 || qType == u16 || qType == u32 ||

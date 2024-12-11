@@ -53,9 +53,9 @@ void whereTest(string pTestFile, bool isSubRef = false,
     vector<T> in(data[0].size());
     transform(data[0].begin(), data[0].end(), in.begin(), convert_to<T, int>);
 
-    af_array inArray   = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
 
     // Get input array
     if (isSubRef) {

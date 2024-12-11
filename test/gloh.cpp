@@ -150,9 +150,9 @@ void glohTest(string pTestFile) {
     size_t testCount = inDims.size();
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array inArray_f32 = 0;
-        af_array inArray     = 0;
-        af_array desc        = 0;
+        af_array inArray_f32 = nullptr;
+        af_array inArray     = nullptr;
+        af_array desc        = nullptr;
         af_features feat;
 
         inFiles[testId].insert(0, string(TEST_DIR "/gloh/"));
@@ -164,8 +164,9 @@ void glohTest(string pTestFile) {
         ASSERT_SUCCESS(af_gloh(&feat, &desc, inArray, 3, 0.04f, 10.0f, 1.6f,
                                true, 1.f / 256.f, 0.05f));
 
-        dim_t n = 0;
-        af_array x, y, score, orientation, size;
+        dim_t n    = 0;
+        af_array x = nullptr, y = nullptr, score = nullptr,
+                 orientation = nullptr, size = nullptr;
 
         ASSERT_SUCCESS(af_get_features_num(&n, feat));
         ASSERT_SUCCESS(af_get_features_xpos(&x, feat));

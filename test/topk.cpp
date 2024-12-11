@@ -77,7 +77,7 @@ void topkTest(const int ndims, const dim_t* dims, const unsigned k,
     SUPPORTED_TYPE_CHECK(T);
     af_dtype dtype = (af_dtype)dtype_traits<T>::af_type;
 
-    af_array input, output, outindex;
+    af_array input = nullptr, output = nullptr, outindex = nullptr;
 
     size_t ielems = 1;
     size_t oelems = 1;
@@ -216,7 +216,7 @@ TYPED_TEST(TopK, Min4D0) {
 
 TEST(TopK, ValidationCheck_DimN) {
     dim_t dims[4] = {10, 10, 1, 1};
-    af_array out, idx, in;
+    af_array out = nullptr, idx = nullptr, in = nullptr;
     ASSERT_SUCCESS(af_randu(&in, 2, dims, f32));
     ASSERT_EQ(AF_ERR_NOT_SUPPORTED,
               af_topk(&out, &idx, in, 10, 1, AF_TOPK_MAX));
@@ -225,7 +225,7 @@ TEST(TopK, ValidationCheck_DimN) {
 
 TEST(TopK, ValidationCheck_DefaultDim) {
     dim_t dims[4] = {10, 10, 1, 1};
-    af_array out, idx, in;
+    af_array out = nullptr, idx = nullptr, in = nullptr;
     ASSERT_SUCCESS(af_randu(&in, 4, dims, f32));
     ASSERT_SUCCESS(af_topk(&out, &idx, in, 10, -1, AF_TOPK_MAX));
     ASSERT_SUCCESS(af_release_array(in));
@@ -284,7 +284,7 @@ TYPED_TEST(TopK, Min4D0_Stable) {
 
 TEST(TopK, ValidationCheck_DimN_Stable) {
     dim_t dims[4] = {10, 10, 1, 1};
-    af_array out, idx, in;
+    af_array out = nullptr, idx = nullptr, in = nullptr;
     ASSERT_SUCCESS(af_randu(&in, 2, dims, f32));
     ASSERT_EQ(AF_ERR_NOT_SUPPORTED,
               af_topk(&out, &idx, in, 10, 1, AF_TOPK_STABLE_MAX));
@@ -293,7 +293,7 @@ TEST(TopK, ValidationCheck_DimN_Stable) {
 
 TEST(TopK, ValidationCheck_DefaultDim_Stable) {
     dim_t dims[4] = {10, 10, 1, 1};
-    af_array out, idx, in;
+    af_array out = nullptr, idx = nullptr, in = nullptr;
     ASSERT_SUCCESS(af_randu(&in, 4, dims, f32));
     ASSERT_SUCCESS(af_topk(&out, &idx, in, 10, -1, AF_TOPK_STABLE_MAX));
     ASSERT_SUCCESS(af_release_array(in));

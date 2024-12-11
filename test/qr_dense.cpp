@@ -183,7 +183,7 @@ TYPED_TEST(QR, RectangularMultipleOfTwoLarge1) {
 TEST(QR, InPlaceNullOutput) {
     LAPACK_ENABLED_CHECK();
     dim4 dims(3, 3);
-    af_array in = 0;
+    af_array in = nullptr;
     ASSERT_SUCCESS(af_randu(&in, dims.ndims(), dims.get(), f32));
 
     ASSERT_EQ(AF_ERR_ARG, af_qr_inplace(NULL, in));

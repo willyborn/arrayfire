@@ -80,10 +80,10 @@ void approx1Test(string pTestFile, const unsigned resultIdx,
     dim4 idims = numDims[0];
     dim4 pdims = numDims[1];
 
-    af_array inArray   = 0;
-    af_array posArray  = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array posArray  = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
 
     vector<T> input(in[0].begin(), in[0].end());
 
@@ -153,10 +153,10 @@ void approx1CubicTest(string pTestFile, const unsigned resultIdx,
     dim4 idims = numDims[0];
     dim4 pdims = numDims[1];
 
-    af_array inArray   = 0;
-    af_array posArray  = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array posArray  = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
 
     vector<T> input(in[0].begin(), in[0].end());
 
@@ -240,9 +240,9 @@ void approx1ArgsTest(string pTestFile, const af_interp_type method,
     dim4 idims = numDims[0];
     dim4 pdims = numDims[1];
 
-    af_array inArray  = 0;
-    af_array posArray = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array posArray = nullptr;
+    af_array outArray = nullptr;
 
     vector<T> input(in[0].begin(), in[0].end());
 
@@ -286,9 +286,9 @@ void approx1ArgsTestPrecision(string pTestFile, const unsigned,
     dim4 idims = numDims[0];
     dim4 pdims = numDims[1];
 
-    af_array inArray  = 0;
-    af_array posArray = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array posArray = nullptr;
+    af_array outArray = nullptr;
 
     vector<T> input(in[0].begin(), in[0].end());
 
@@ -861,7 +861,7 @@ class Approx1V2 : public ::testing::Test {
     af_array in;
     af_array pos;
 
-    Approx1V2() : gold(0), in(0), pos(0) {}
+    Approx1V2() : gold(nullptr), in(nullptr), pos(nullptr) {}
 
     void SetUp() {}
 
@@ -909,7 +909,7 @@ class Approx1V2 : public ::testing::Test {
     void testSpclOutArray(TestOutputArrayType out_array_type) {
         SUPPORTED_TYPE_CHECK(T);
 
-        af_array out = 0;
+        af_array out = nullptr;
         TestOutputArrayInfo metadata(out_array_type);
         genTestOutputArray(&out, gold_dims.ndims(), gold_dims.get(),
                            (af_dtype)dtype_traits<T>::af_type, &metadata);
@@ -921,7 +921,7 @@ class Approx1V2 : public ::testing::Test {
     void testSpclOutArrayUniform(TestOutputArrayType out_array_type) {
         SUPPORTED_TYPE_CHECK(T);
 
-        af_array out = 0;
+        af_array out = nullptr;
         TestOutputArrayInfo metadata(out_array_type);
         genTestOutputArray(&out, gold_dims.ndims(), gold_dims.get(),
                            (af_dtype)dtype_traits<T>::af_type, &metadata);
@@ -1016,7 +1016,7 @@ class Approx1NullArgs : public ::testing::Test {
     af_array in;
     af_array pos;
 
-    Approx1NullArgs() : out(0), in(0), pos(0) {}
+    Approx1NullArgs() : out(nullptr), in(nullptr), pos(nullptr) {}
 
     void SetUp() {
         SimpleTestData data;
@@ -1036,7 +1036,7 @@ class Approx1NullArgs : public ::testing::Test {
 };
 
 TEST_F(Approx1NullArgs, NullOutputPtr) {
-    af_array* out_ptr = 0;
+    af_array* out_ptr = nullptr;
     ASSERT_EQ(AF_ERR_ARG,
               af_approx1(out_ptr, this->in, this->pos, AF_INTERP_LINEAR, 0.f));
 }
@@ -1052,7 +1052,7 @@ TEST_F(Approx1NullArgs, NullPosArray) {
 }
 
 TEST_F(Approx1NullArgs, V2NullOutputPtr) {
-    af_array* out_ptr = 0;
+    af_array* out_ptr = nullptr;
     ASSERT_EQ(AF_ERR_ARG, af_approx1_v2(out_ptr, this->in, this->pos,
                                         AF_INTERP_LINEAR, 0.f));
 }
@@ -1068,7 +1068,7 @@ TEST_F(Approx1NullArgs, V2NullPosArray) {
 }
 
 TEST_F(Approx1NullArgs, UniformNullOutputPtr) {
-    af_array* out_ptr = 0;
+    af_array* out_ptr = nullptr;
     ASSERT_EQ(AF_ERR_ARG, af_approx1_uniform(out_ptr, this->in, this->pos, 0,
                                              0.0, 1.0, AF_INTERP_LINEAR, 0.f));
 }
@@ -1084,7 +1084,7 @@ TEST_F(Approx1NullArgs, UniformNullPosArray) {
 }
 
 TEST_F(Approx1NullArgs, V2UniformNullOutputPtr) {
-    af_array* out_ptr = 0;
+    af_array* out_ptr = nullptr;
     ASSERT_EQ(AF_ERR_ARG,
               af_approx1_uniform_v2(out_ptr, this->in, this->pos, 0, 0.0, 1.0,
                                     AF_INTERP_LINEAR, 0.f));

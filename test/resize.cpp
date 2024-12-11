@@ -68,8 +68,8 @@ TYPED_TEST(Resize, InvalidDims) {
 
     vector<TypeParam> in(8 * 8);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims = dim4(8, 8, 1, 1);
 
@@ -125,9 +125,9 @@ void resizeTest(string pTestFile, const unsigned resultIdx, const dim_t odim0,
 
     dim4 dims = numDims[0];
 
-    af_array inArray   = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array inArray   = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
     if (isSubRef) {
         ASSERT_SUCCESS(af_create_array(&tempArray, &(in[0].front()),
                                        dims.ndims(), dims.get(),
@@ -326,8 +326,8 @@ void resizeArgsTest(af_err err, string pTestFile, const dim4 odims,
 
     dim4 dims = numDims[0];
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
                                    (af_dtype)dtype_traits<T>::af_type));

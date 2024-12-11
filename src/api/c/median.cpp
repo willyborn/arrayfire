@@ -111,11 +111,9 @@ static af_array median(const af_array& in, const dim_t dim) {
         }
 
         // Return as floats for consistency
-        af_array out;
         AF_CHECK(af_cast(&out, left, f32));
         AF_CHECK(af_release_array(left));
         AF_CHECK(af_release_array(sortedIn_handle));
-        return out;
     } else {
         // ((mid-1)+mid)/2 is our guy
         dim4 dims      = input.dims();

@@ -71,8 +71,8 @@ void qrInPlace(array &tau, array &in) {
 }
 
 int cholesky(array &out, const array &in, const bool is_upper) {
-    int info = 0;
-    af_array res;
+    int info     = 0;
+    af_array res = nullptr;
     AF_THROW(af_cholesky(&res, &info, in.get(), is_upper));
     out = array(res);
     return info;
@@ -85,26 +85,26 @@ int choleskyInPlace(array &in, const bool is_upper) {
 }
 
 array solve(const array &a, const array &b, const matProp options) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_solve(&out, a.get(), b.get(), options));
     return array(out);
 }
 
 array solveLU(const array &a, const array &piv, const array &b,
               const matProp options) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_solve_lu(&out, a.get(), piv.get(), b.get(), options));
     return array(out);
 }
 
 array inverse(const array &in, const matProp options) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_inverse(&out, in.get(), options));
     return array(out);
 }
 
 array pinverse(const array &in, const double tol, const matProp options) {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_pinverse(&out, in.get(), tol, options));
     return array(out);
 }

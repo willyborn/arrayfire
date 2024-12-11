@@ -59,7 +59,7 @@ CREATE_TESTS(AF_STORAGE_COO)
 TEST(Sparse, Create_AF_STORAGE_CSC) {
     array d = identity(3, 3);
 
-    af_array out = 0;
+    af_array out = nullptr;
     ASSERT_EQ(AF_ERR_ARG,
               af_create_sparse_array_from_dense(&out, d.get(), AF_STORAGE_CSC));
 
@@ -103,7 +103,7 @@ TEST(Sparse, ISSUE_1745) {
     array row_idx = (idx / A.dims()[0]).as(s64);
     array col_idx = (idx % A.dims()[0]).as(s64);
 
-    af_array A_sparse;
+    af_array A_sparse = nullptr;
     ASSERT_EQ(AF_ERR_ARG, af_create_sparse_array(
                               &A_sparse, A.dims(0), A.dims(1), data.get(),
                               row_idx.get(), col_idx.get(), AF_STORAGE_CSR));
@@ -116,7 +116,7 @@ TEST(Sparse, ISSUE_2134_COO) {
     array row(7, rows);
     array col(7, cols);
     array value(7, values);
-    af_array A = 0;
+    af_array A = nullptr;
     EXPECT_EQ(AF_ERR_SIZE,
               af_create_sparse_array(&A, 3, 3, value.get(), row.get(),
                                      col.get(), AF_STORAGE_CSR));
@@ -140,7 +140,7 @@ TEST(Sparse, ISSUE_2134_CSR) {
     array row(4, rows);
     array col(7, cols);
     array value(7, values);
-    af_array A = 0;
+    af_array A = nullptr;
     EXPECT_EQ(AF_SUCCESS,
               af_create_sparse_array(&A, 3, 3, value.get(), row.get(),
                                      col.get(), AF_STORAGE_CSR));
@@ -164,7 +164,7 @@ TEST(Sparse, ISSUE_2134_CSC) {
     array row(7, rows);
     array col(4, cols);
     array value(7, values);
-    af_array A = 0;
+    af_array A = nullptr;
     EXPECT_EQ(AF_ERR_SIZE,
               af_create_sparse_array(&A, 3, 3, value.get(), row.get(),
                                      col.get(), AF_STORAGE_CSR));
@@ -235,7 +235,7 @@ TYPED_TEST(Sparse, DeepCopy) {
 TYPED_TEST(Sparse, Empty) {
     SUPPORTED_TYPE_CHECK(TypeParam);
 
-    af_array ret = 0;
+    af_array ret = nullptr;
     dim_t rows = 0, cols = 0, nnz = 0;
     EXPECT_EQ(AF_SUCCESS, af_create_sparse_array_from_ptr(
                               &ret, rows, cols, nnz, NULL, NULL, NULL,

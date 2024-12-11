@@ -33,7 +33,7 @@ void cast_test() {
     af_dtype ta = (af_dtype)dtype_traits<Ti>::af_type;
     af_dtype tb = (af_dtype)dtype_traits<To>::af_type;
     dim4 dims(num, 1, 1, 1);
-    af_array a, b;
+    af_array a = nullptr, b = nullptr;
     af_randu(&a, dims.ndims(), dims.get(), ta);
     af_err err = af_cast(&b, a, tb);
     af_release_array(a);
@@ -86,7 +86,7 @@ void cast_test_complex_real() {
     af_dtype ta = (af_dtype)dtype_traits<Ti>::af_type;
     af_dtype tb = (af_dtype)dtype_traits<To>::af_type;
     dim4 dims(num, 1, 1, 1);
-    af_array a, b;
+    af_array a = nullptr, b = nullptr;
     af_randu(&a, dims.ndims(), dims.get(), ta);
     af_err err = af_cast(&b, a, tb);
     ASSERT_EQ(err, AF_ERR_TYPE);
@@ -112,7 +112,7 @@ TEST(CAST_TEST, Test_JIT_DuplicateCastNoop) {
     af_dtype ta = (af_dtype)dtype_traits<float>::af_type;
     af_dtype tb = (af_dtype)dtype_traits<double>::af_type;
     dim4 dims(num, 1, 1, 1);
-    af_array a, b, c;
+    af_array a = nullptr, b = nullptr, c = nullptr;
     af_randu(&a, dims.ndims(), dims.get(), ta);
 
     af_cast(&b, a, tb);

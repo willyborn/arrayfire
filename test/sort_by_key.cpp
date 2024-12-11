@@ -59,11 +59,11 @@ void sortTest(string pTestFile, const bool dir, const unsigned resultIdx0,
 
     dim4 idims = numDims[0];
 
-    af_array ikeyArray = 0;
-    af_array ivalArray = 0;
-    af_array tempArray = 0;
-    af_array okeyArray = 0;
-    af_array ovalArray = 0;
+    af_array ikeyArray = nullptr;
+    af_array ivalArray = nullptr;
+    af_array tempArray = nullptr;
+    af_array okeyArray = nullptr;
+    af_array ovalArray = nullptr;
 
     if (isSubRef) {
         // ASSERT_SUCCESS(af_create_array(&tempArray, &(in[0].front()),

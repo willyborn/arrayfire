@@ -114,9 +114,9 @@ void assignTest(string pTestFile, const vector<af_seq> *seqv) {
 
     dim4 dims0        = numDims[0];
     dim4 dims1        = numDims[1];
-    af_array lhsArray = 0;
-    af_array rhsArray = 0;
-    af_array outArray = 0;
+    af_array lhsArray = nullptr;
+    af_array rhsArray = nullptr;
+    af_array outArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&rhsArray, &(in[0].front()), dims0.ndims(),
                                    dims0.get(),
@@ -519,9 +519,9 @@ TEST(ArrayAssign, InvalidArgs) {
 
     dim4 dims0(10, 1, 1, 1);
     dim4 dims1(100, 1, 1, 1);
-    af_array lhsArray = 0;
-    af_array rhsArray = 0;
-    af_array outArray = 0;
+    af_array lhsArray = nullptr;
+    af_array rhsArray = nullptr;
+    af_array outArray = nullptr;
 
     vector<af_seq> seqv;
     seqv.push_back(af_make_seq(5, 14, 1));
@@ -893,7 +893,7 @@ TEST(Asssign, LinearAssignSeq) {
     af_array in_arr  = a.get();
     af_index_t ii    = idx.get();
     af_array rhs_arr = rhs.get();
-    af_array out_arr;
+    af_array out_arr = nullptr;
 
     ASSERT_SUCCESS(af_assign_seq(&out_arr, in_arr, 1, &ii.idx.seq, rhs_arr));
 
@@ -931,7 +931,7 @@ TEST(Asssign, LinearAssignGenSeq) {
     af_array in_arr  = a.get();
     af_index_t ii    = idx.get();
     af_array rhs_arr = rhs.get();
-    af_array out_arr;
+    af_array out_arr = nullptr;
 
     ASSERT_SUCCESS(af_assign_gen(&out_arr, in_arr, 1, &ii, rhs_arr));
 
@@ -969,7 +969,7 @@ TEST(Asssign, LinearAssignGenArr) {
     af_array in_arr  = a.get();
     af_index_t ii    = idx.get();
     af_array rhs_arr = rhs.get();
-    af_array out_arr;
+    af_array out_arr = nullptr;
 
     ASSERT_SUCCESS(af_assign_gen(&out_arr, in_arr, 1, &ii, rhs_arr));
 

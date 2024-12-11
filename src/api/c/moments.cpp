@@ -77,7 +77,7 @@ af_err af_moments_all(double* out, const af_array in,
         dim4 idims               = in_info.dims();
         DIM_ASSERT(1, idims[2] == 1 && idims[3] == 1);
 
-        af_array moments_arr;
+        af_array moments_arr = nullptr;
         AF_CHECK(af_moments(&moments_arr, in, moment));
         moment_copy<float>(out, moments_arr);
         AF_CHECK(af_release_array(moments_arr));

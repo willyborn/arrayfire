@@ -46,10 +46,10 @@ void testGeneralAssignOneArray(string pTestFile, const dim_t ndims,
     dim4 dims0        = numDims[0];
     dim4 dims1        = numDims[1];
     dim4 dims2        = numDims[2];
-    af_array outArray = 0;
-    af_array rhsArray = 0;
-    af_array lhsArray = 0;
-    af_array idxArray = 0;
+    af_array outArray = nullptr;
+    af_array rhsArray = nullptr;
+    af_array lhsArray = nullptr;
+    af_array idxArray = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&lhsArray, &(in[0].front()), dims0.ndims(),
                                    dims0.get(),
@@ -114,9 +114,9 @@ TEST(GeneralAssign, SSSS) {
 
     dim4 dims0        = numDims[0];
     dim4 dims1        = numDims[1];
-    af_array outArray = 0;
-    af_array rhsArray = 0;
-    af_array lhsArray = 0;
+    af_array outArray = nullptr;
+    af_array rhsArray = nullptr;
+    af_array lhsArray = nullptr;
 
     af_index_t indexs[2];
     indexs[0].idx.seq = af_make_seq(10, 14, 1);
@@ -164,13 +164,13 @@ TEST(GeneralAssign, AAAA) {
     dim4 dims3         = numDims[3];
     dim4 dims4         = numDims[4];
     dim4 dims5         = numDims[5];
-    af_array outArray  = 0;
-    af_array rhsArray  = 0;
-    af_array lhsArray  = 0;
-    af_array idxArray0 = 0;
-    af_array idxArray1 = 0;
-    af_array idxArray2 = 0;
-    af_array idxArray3 = 0;
+    af_array outArray  = nullptr;
+    af_array rhsArray  = nullptr;
+    af_array lhsArray  = nullptr;
+    af_array idxArray0 = nullptr;
+    af_array idxArray1 = nullptr;
+    af_array idxArray2 = nullptr;
+    af_array idxArray3 = nullptr;
 
     af_index_t indexs[4];
     indexs[0].isSeq = false;
@@ -458,7 +458,7 @@ TEST(GeneralAssign, CPP_AANN) {
 
 TEST(GeneralAssign, NDimsDoesNotMatchLDims) {
     af_err err;
-    af_array zeros, l1, l2, sevens;
+    af_array zeros = nullptr, l1 = nullptr, l2 = nullptr, sevens = nullptr;
     dim_t sevens_size[3] = {5, 1, 1};
     short hsevens[5]     = {7, 7, 7, 7, 7};
 
@@ -487,7 +487,7 @@ TEST(GeneralAssign, NDimsDoesNotMatchLDims) {
     // clang-format on
     for (int number_of_indices = 2; number_of_indices < 4;
          number_of_indices++) {
-        af_array result = 0;
+        af_array result = nullptr;
         ASSERT_SUCCESS(
             af_assign_gen(&result, zeros, number_of_indices, ix, sevens));
 

@@ -42,7 +42,7 @@ void gaussianKernelTest(string pFileName, double sigma) {
 
     readTestsFromFile<int, T>(pFileName, numDims, in, tests);
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
 
     vector<int> input(in[0].begin(), in[0].end());
 

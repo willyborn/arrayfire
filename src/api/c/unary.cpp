@@ -562,7 +562,7 @@ struct unaryOpCplxFun<Tc, Tr, af_sqrt_t> {
 
 af_err af_not(af_array *out, const af_array in) {
     try {
-        af_array tmp;
+        af_array tmp             = nullptr;
         const ArrayInfo &in_info = getInfo(in);
         if (in_info.ndims() == 0) { return af_retain_array(out, in); }
 
@@ -623,8 +623,8 @@ af_err af_arg(af_array *out, const af_array in) {
                                in_info.getType());
         }
 
-        af_array real;
-        af_array imag;
+        af_array real = nullptr;
+        af_array imag = nullptr;
 
         AF_CHECK(af_real(&real, in));
         AF_CHECK(af_imag(&imag, in));
@@ -641,7 +641,7 @@ af_err af_arg(af_array *out, const af_array in) {
 
 af_err af_pow2(af_array *out, const af_array in) {
     try {
-        af_array two;
+        af_array two             = nullptr;
         const ArrayInfo &in_info = getInfo(in);
         if (in_info.ndims() == 0) { return af_retain_array(out, in); }
 
@@ -659,14 +659,14 @@ af_err af_pow2(af_array *out, const af_array in) {
 
 af_err af_factorial(af_array *out, const af_array in) {
     try {
-        af_array one;
+        af_array one             = nullptr;
         const ArrayInfo &in_info = getInfo(in);
         if (in_info.ndims() == 0) { return af_retain_array(out, in); }
 
         AF_CHECK(af_constant(&one, 1, in_info.ndims(), in_info.dims().get(),
                              in_info.getType()));
 
-        af_array inp1;
+        af_array inp1 = nullptr;
         AF_CHECK(af_add(&inp1, one, in, false));
 
         AF_CHECK(af_tgamma(out, inp1));

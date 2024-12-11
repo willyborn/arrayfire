@@ -49,8 +49,8 @@ using std::vector;
 TEST(fft, Invalid_Type) {
     vector<char> in(100, 1);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims(5 * 5 * 2 * 2);
     ASSERT_SUCCESS(af_create_array(&inArray, &(in.front()), dims.ndims(),
@@ -64,8 +64,8 @@ TEST(fft, Invalid_Type) {
 TEST(fft2, Invalid_Array) {
     vector<float> in(100, 1);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims(5 * 5 * 2 * 2);
     ASSERT_SUCCESS(af_create_array(&inArray, &(in.front()), dims.ndims(),
@@ -79,8 +79,8 @@ TEST(fft2, Invalid_Array) {
 TEST(fft3, Invalid_Array) {
     vector<float> in(100, 1);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims(10, 10, 1, 1);
     ASSERT_SUCCESS(af_create_array(&inArray, &(in.front()), dims.ndims(),
@@ -94,8 +94,8 @@ TEST(fft3, Invalid_Array) {
 TEST(ifft2, Invalid_Array) {
     vector<float> in(100, 1);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims(100, 1, 1, 1);
     ASSERT_SUCCESS(af_create_array(&inArray, &(in.front()), dims.ndims(),
@@ -109,8 +109,8 @@ TEST(ifft2, Invalid_Array) {
 TEST(ifft3, Invalid_Array) {
     vector<float> in(100, 1);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     dim4 dims(10, 10, 1, 1);
     ASSERT_SUCCESS(af_create_array(&inArray, &(in.front()), dims.ndims(),
@@ -133,8 +133,8 @@ void fftTest(string pTestFile, dim_t pad0 = 0, dim_t pad1 = 0, dim_t pad2 = 0) {
     readTestsFromFile<inType, outType>(pTestFile, numDims, in, tests);
 
     dim4 dims         = numDims[0];
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
@@ -299,8 +299,8 @@ void fftBatchTest(string pTestFile, dim_t pad0 = 0, dim_t pad1 = 0,
     readTestsFromFile<inType, outType>(pTestFile, numDims, in, tests);
 
     dim4 dims         = numDims[0];
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),

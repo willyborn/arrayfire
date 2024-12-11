@@ -73,17 +73,17 @@ void imageTest(string pTestFile, const float dt, const float K,
             outFiles[testId].insert(0, string(TEST_DIR "/gradient_diffusion/"));
         }
 
-        af_array _inArray   = 0;
-        af_array inArray    = 0;
-        af_array _outArray  = 0;
-        af_array cstArray   = 0;
-        af_array minArray   = 0;
-        af_array numArray   = 0;
-        af_array denArray   = 0;
-        af_array divArray   = 0;
-        af_array outArray   = 0;
-        af_array goldArray  = 0;
-        af_array _goldArray = 0;
+        af_array _inArray   = nullptr;
+        af_array inArray    = nullptr;
+        af_array _outArray  = nullptr;
+        af_array cstArray   = nullptr;
+        af_array minArray   = nullptr;
+        af_array numArray   = nullptr;
+        af_array denArray   = nullptr;
+        af_array divArray   = nullptr;
+        af_array outArray   = nullptr;
+        af_array goldArray  = nullptr;
+        af_array _goldArray = nullptr;
         dim_t nElems        = 0;
 
         ASSERT_SUCCESS(

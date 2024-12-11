@@ -70,7 +70,7 @@ void testImage(const std::string pTestFile, const size_t numSeeds,
 
     size_t testCount = inDims.size();
 
-    af_array seedxArr = 0, seedyArr = 0;
+    af_array seedxArr = nullptr, seedyArr = nullptr;
     dim4 seedDims(numSeeds);
     ASSERT_SUCCESS(af_create_array(&seedxArr, seedx, seedDims.ndims(),
                                    seedDims.get(), u32));
@@ -78,11 +78,11 @@ void testImage(const std::string pTestFile, const size_t numSeeds,
                                    seedDims.get(), u32));
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array _inArray   = 0;
-        af_array inArray    = 0;
-        af_array outArray   = 0;
-        af_array _goldArray = 0;
-        af_array goldArray  = 0;
+        af_array _inArray   = nullptr;
+        af_array inArray    = nullptr;
+        af_array outArray   = nullptr;
+        af_array _goldArray = nullptr;
+        af_array goldArray  = nullptr;
 
         inFiles[testId].insert(0, string(TEST_DIR "/confidence_cc/"));
         outFiles[testId].insert(0, string(TEST_DIR "/confidence_cc/"));
@@ -131,8 +131,8 @@ void testData(CCCTestParams params) {
     readTests<T, T, int>(file, numDims, in, tests);
 
     dim4 dims         = numDims[0];
-    af_array inArray  = 0;
-    af_array seedxArr = 0, seedyArr = 0;
+    af_array inArray  = nullptr;
+    af_array seedxArr = nullptr, seedyArr = nullptr;
 
     vector<uint> seedCoords(in[1].begin(), in[1].end());
     const unsigned *seedxy = seedCoords.data();
@@ -146,7 +146,7 @@ void testData(CCCTestParams params) {
                                    dims.get(),
                                    (af_dtype)af::dtype_traits<T>::af_type));
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
     apiWrapper(&outArray, inArray, seedxArr, seedyArr, params);
 
     ASSERT_VEC_ARRAY_EQ(tests[0], dims, outArray);

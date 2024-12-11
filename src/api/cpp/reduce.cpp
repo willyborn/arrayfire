@@ -28,7 +28,7 @@ array sum(const array &in, const int dim, const double nanval) {
 
 void sumByKey(array &keys_out, array &vals_out, const array &keys,
               const array &vals, const int dim) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_sum_by_key(&okeys, &ovals, keys.get(), vals.get(),
                            getFNSD(dim, vals.dims())));
     keys_out = array(okeys);
@@ -37,7 +37,7 @@ void sumByKey(array &keys_out, array &vals_out, const array &keys,
 
 void sumByKey(array &keys_out, array &vals_out, const array &keys,
               const array &vals, const int dim, const double nanval) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(
         af_sum_by_key_nan(&okeys, &ovals, keys.get(), vals.get(), dim, nanval));
     keys_out = array(okeys);
@@ -58,7 +58,7 @@ array product(const array &in, const int dim, const double nanval) {
 
 void productByKey(array &keys_out, array &vals_out, const array &keys,
                   const array &vals, const int dim) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_product_by_key(&okeys, &ovals, keys.get(), vals.get(),
                                getFNSD(dim, vals.dims())));
     keys_out = array(okeys);
@@ -67,7 +67,7 @@ void productByKey(array &keys_out, array &vals_out, const array &keys,
 
 void productByKey(array &keys_out, array &vals_out, const array &keys,
                   const array &vals, const int dim, const double nanval) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_product_by_key_nan(&okeys, &ovals, keys.get(), vals.get(), dim,
                                    nanval));
     keys_out = array(okeys);
@@ -84,7 +84,7 @@ array min(const array &in, const int dim) {
 
 void minByKey(array &keys_out, array &vals_out, const array &keys,
               const array &vals, const int dim) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_min_by_key(&okeys, &ovals, keys.get(), vals.get(),
                            getFNSD(dim, vals.dims())));
     keys_out = array(okeys);
@@ -99,7 +99,7 @@ array max(const array &in, const int dim) {
 
 void maxByKey(array &keys_out, array &vals_out, const array &keys,
               const array &vals, const int dim) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_max_by_key(&okeys, &ovals, keys.get(), vals.get(),
                            getFNSD(dim, vals.dims())));
     keys_out = array(okeys);
@@ -108,7 +108,7 @@ void maxByKey(array &keys_out, array &vals_out, const array &keys,
 
 void max(array &val, array &idx, const array &in, const array &ragged_len,
          const int dim) {
-    af_array oval, oidx;
+    af_array oval = nullptr, oidx = nullptr;
     AF_THROW(af_max_ragged(&oval, &oidx, in.get(), ragged_len.get(), dim));
     val = array(oval);
     idx = array(oidx);
@@ -124,7 +124,7 @@ array allTrue(const array &in, const int dim) {
 
 void allTrueByKey(array &keys_out, array &vals_out, const array &keys,
                   const array &vals, const int dim) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_all_true_by_key(&okeys, &ovals, keys.get(), vals.get(),
                                 getFNSD(dim, vals.dims())));
     keys_out = array(okeys);
@@ -141,7 +141,7 @@ array anyTrue(const array &in, const int dim) {
 
 void anyTrueByKey(array &keys_out, array &vals_out, const array &keys,
                   const array &vals, const int dim) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_any_true_by_key(&okeys, &ovals, keys.get(), vals.get(),
                                 getFNSD(dim, vals.dims())));
     keys_out = array(okeys);
@@ -156,7 +156,7 @@ array count(const array &in, const int dim) {
 
 void countByKey(array &keys_out, array &vals_out, const array &keys,
                 const array &vals, const int dim) {
-    af_array okeys, ovals;
+    af_array okeys = nullptr, ovals = nullptr;
     AF_THROW(af_count_by_key(&okeys, &ovals, keys.get(), vals.get(),
                              getFNSD(dim, vals.dims())));
     keys_out = array(okeys);

@@ -172,7 +172,7 @@ void ifft3InPlace(array& in, const double norm_factor) {
 template<>
 AFAPI array fftR2C<1>(const array& in, const dim4& dims,
                       const double norm_factor) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_fft_r2c(&res, in.get(), norm_factor == 0 ? 1.0 : norm_factor,
                         dims[0]));
     return array(res);
@@ -181,7 +181,7 @@ AFAPI array fftR2C<1>(const array& in, const dim4& dims,
 template<>
 AFAPI array fftR2C<2>(const array& in, const dim4& dims,
                       const double norm_factor) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_fft2_r2c(&res, in.get(), norm_factor == 0 ? 1.0 : norm_factor,
                          dims[0], dims[1]));
     return array(res);
@@ -190,7 +190,7 @@ AFAPI array fftR2C<2>(const array& in, const dim4& dims,
 template<>
 AFAPI array fftR2C<3>(const array& in, const dim4& dims,
                       const double norm_factor) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_fft3_r2c(&res, in.get(), norm_factor == 0 ? 1.0 : norm_factor,
                          dims[0], dims[1], dims[2]));
     return array(res);
@@ -211,7 +211,7 @@ AFAPI array fftC2R<1>(const array& in, const bool is_odd,
         norm       = 1.0 / static_cast<double>(dim0);
     }
 
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_fft_c2r(&res, in.get(), norm, is_odd));
     return array(res);
 }
@@ -228,7 +228,7 @@ AFAPI array fftC2R<2>(const array& in, const bool is_odd,
         norm       = 1.0 / static_cast<double>(dim0 * dim1);
     }
 
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_fft2_c2r(&res, in.get(), norm, is_odd));
     return array(res);
 }
@@ -246,7 +246,7 @@ AFAPI array fftC2R<3>(const array& in, const bool is_odd,
         norm       = 1.0 / static_cast<double>(dim0 * dim1 * dim2);
     }
 
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_fft3_c2r(&res, in.get(), norm, is_odd));
     return array(res);
 }

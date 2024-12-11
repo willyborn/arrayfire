@@ -20,7 +20,7 @@ array sort(const array &in, const unsigned dim, const bool isAscending) {
 
 void sort(array &out, array &indices, const array &in, const unsigned dim,
           const bool isAscending) {
-    af_array out_, indices_;
+    af_array out_ = nullptr, indices_ = nullptr;
     AF_THROW(af_sort_index(&out_, &indices_, in.get(), dim, isAscending));
     out     = array(out_);
     indices = array(indices_);
@@ -28,7 +28,7 @@ void sort(array &out, array &indices, const array &in, const unsigned dim,
 
 void sort(array &out_keys, array &out_values, const array &keys,
           const array &values, const unsigned dim, const bool isAscending) {
-    af_array okeys, ovalues;
+    af_array okeys = nullptr, ovalues = nullptr;
     AF_THROW(af_sort_by_key(&okeys, &ovalues, keys.get(), values.get(), dim,
                             isAscending));
     out_keys   = array(okeys);

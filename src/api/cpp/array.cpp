@@ -62,8 +62,8 @@ af_array gforReorder(const af_array in, unsigned dim) {
     if (dim > 3) { AF_THROW_ERR("GFor: Dimension is invalid", AF_ERR_SIZE); }
     unsigned order[AF_MAX_DIMS] = {0, 1, 2, dim};
 
-    order[dim] = 3;
-    af_array out;
+    order[dim]   = 3;
+    af_array out = nullptr;
     AF_THROW(af_reorder(&out, in, order[0], order[1], order[2], order[3]));
     return out;
 }
@@ -111,7 +111,7 @@ dim4 getDims(const af_array arr) {
 
 af_array initEmptyArray(af::dtype ty, dim_t d0, dim_t d1 = 1, dim_t d2 = 1,
                         dim_t d3 = 1) {
-    af_array arr;
+    af_array arr    = nullptr;
     dim_t my_dims[] = {d0, d1, d2, d3};
     AF_THROW(af_create_handle(&arr, AF_MAX_DIMS, my_dims, ty));
     return arr;
@@ -120,7 +120,7 @@ af_array initEmptyArray(af::dtype ty, dim_t d0, dim_t d1 = 1, dim_t d2 = 1,
 af_array initDataArray(const void *ptr, int ty, af::source src, dim_t d0,
                        dim_t d1 = 1, dim_t d2 = 1, dim_t d3 = 1) {
     dim_t my_dims[] = {d0, d1, d2, d3};
-    af_array arr;
+    af_array arr    = nullptr;
     switch (src) {
         case afHost:
             AF_THROW(af_create_array(&arr, ptr, AF_MAX_DIMS, my_dims,
@@ -167,9 +167,9 @@ struct array::array_proxy::array_proxy_impl {
         if (delete_on_destruction_) { delete parent_; }
     }
 
-    array_proxy_impl(const array_proxy_impl &)            = delete;
-    array_proxy_impl(const array_proxy_impl &&)           = delete;
-    array_proxy_impl operator=(const array_proxy_impl &)  = delete;
+    array_proxy_impl(const array_proxy_impl &)  = delete;
+    array_proxy_impl(const array_proxy_impl &&) = delete;
+    array_proxy_impl operator=(const array_proxy_impl &) = delete;
     array_proxy_impl operator=(const array_proxy_impl &&) = delete;
 };
 
@@ -484,7 +484,7 @@ array::array_proxy array::slices(int first, int last) {
 
 // NOLINTNEXTLINE(readability-const-return-type)
 const array array::as(af::dtype type) const {
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_cast(&out, this->get(), type));
     return array(out);
 }
@@ -538,7 +538,7 @@ array::array_proxy &af::array::array_proxy::operator=(const array &other) {
         }
 
         if (batch_assign) {
-            af_array out;
+            af_array out = nullptr;
             AF_THROW(af_tile(&out, other_arr, out_dims[0] / other_dims[0],
                              out_dims[1] / other_dims[1],
                              out_dims[2] / other_dims[2],
@@ -907,7 +907,7 @@ af::dtype implicit_dtype(af::dtype scalar_type, af::dtype array_type) {
 
 #define BINARY_TYPE(TY, OP, release_func, dty)                          \
     array operator OP(const array &plhs, const TY &value) {             \
-        af_array out;                                                   \
+        af_array out  = nullptr;                                        \
         af::dtype cty = implicit_dtype(dty, plhs.type());               \
         array cst     = constant(value, plhs.dims(), cty);              \
         AF_THROW(release_func(&out, plhs.get(), cst.get(), gforGet())); \
@@ -915,16 +915,16 @@ af::dtype implicit_dtype(af::dtype scalar_type, af::dtype array_type) {
     }                                                                   \
     array operator OP(const TY &value, const array &other) {            \
         const af_array rhs = other.get();                               \
-        af_array out;                                                   \
-        af::dtype cty = implicit_dtype(dty, other.type());              \
-        array cst     = constant(value, other.dims(), cty);             \
+        af_array out       = nullptr;                                   \
+        af::dtype cty      = implicit_dtype(dty, other.type());         \
+        array cst          = constant(value, other.dims(), cty);        \
         AF_THROW(release_func(&out, cst.get(), rhs, gforGet()));        \
         return array(out);                                              \
     }
 
 #define BINARY_OP(OP, release_func)                                    \
     array operator OP(const array &lhs, const array &rhs) {            \
-        af_array out;                                                  \
+        af_array out = nullptr;                                        \
         AF_THROW(release_func(&out, lhs.get(), rhs.get(), gforGet())); \
         return array(out);                                             \
     }                                                                  \
@@ -969,15 +969,15 @@ BINARY_OP(>>, af_bitshiftr)
 
 array array::operator-() const {
     af_array lhs = this->get();
-    af_array out;
-    array cst = constant(0, this->dims(), this->type());
+    af_array out = nullptr;
+    array cst    = constant(0, this->dims(), this->type());
     AF_THROW(af_sub(&out, cst.get(), lhs, gforGet()));
     return array(out);
 }
 
 array array::operator!() const {
     af_array lhs = this->get();
-    af_array out;
+    af_array out = nullptr;
     AF_THROW(af_not(&out, lhs));
     return array(out);
 }
@@ -999,7 +999,7 @@ void array::eval() const { AF_THROW(af_eval(get())); }
             AF_THROW_ERR("Requested type doesn't match with array",            \
                          AF_ERR_TYPE);                                         \
         }                                                                      \
-        void *res;                                                             \
+        void *res = nullptr;                                                   \
         AF_THROW(af_alloc_host(&res, bytes()));                                \
         AF_THROW(af_get_data_ptr(res, get()));                                 \
                                                                                \
@@ -1017,7 +1017,7 @@ void array::eval() const { AF_THROW(af_eval(get())); }
     }                                                                          \
     template<>                                                                 \
     AFAPI T *array::device() const {                                           \
-        void *ptr = NULL;                                                      \
+        void *ptr = nullptr;                                                   \
         AF_THROW(af_get_device_ptr(&ptr, get()));                              \
         return (T *)ptr;                                                       \
     }                                                                          \

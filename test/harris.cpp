@@ -73,8 +73,8 @@ void harrisTest(string pTestFile, float sigma, unsigned block_size) {
 
     for (size_t testId = 0; testId < testCount; ++testId) {
         dim_t nElems         = 0;
-        af_array inArray_f32 = 0;
-        af_array inArray     = 0;
+        af_array inArray_f32 = nullptr;
+        af_array inArray     = nullptr;
         af_features out;
 
         inFiles[testId].insert(0, string(TEST_DIR "/harris/"));
@@ -87,8 +87,9 @@ void harrisTest(string pTestFile, float sigma, unsigned block_size) {
         ASSERT_SUCCESS(
             af_harris(&out, inArray, 500, 1e5f, sigma, block_size, 0.04f));
 
-        dim_t n = 0;
-        af_array x, y, score, orientation, size;
+        dim_t n    = 0;
+        af_array x = nullptr, y = nullptr, score = nullptr,
+                 orientation = nullptr, size = nullptr;
 
         ASSERT_SUCCESS(af_get_features_num(&n, out));
         ASSERT_SUCCESS(af_get_features_xpos(&x, out));

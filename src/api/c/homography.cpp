@@ -31,10 +31,10 @@ static inline void homography(af_array& H, int& inliers, const af_array x_src,
                               const af_homography_type htype,
                               const float inlier_thr,
                               const unsigned iterations) {
-    Array<T> bestH = createEmptyArray<T>(af::dim4(3, 3));
-    af_array initial;
-    unsigned d    = (iterations + 256 - 1) / 256;
-    dim_t rdims[] = {4, d * 256};
+    Array<T> bestH   = createEmptyArray<T>(af::dim4(3, 3));
+    af_array initial = nullptr;
+    unsigned d       = (iterations + 256 - 1) / 256;
+    dim_t rdims[]    = {4, d * 256};
     AF_CHECK(af_randu(&initial, 2, rdims, f32));
     inliers =
         homography<T>(bestH, getArray<float>(x_src), getArray<float>(y_src),
@@ -81,7 +81,7 @@ af_err af_homography(af_array* H, int* inliers, const af_array x_src,
         ARG_ASSERT(
             7, (htype == AF_HOMOGRAPHY_RANSAC || htype == AF_HOMOGRAPHY_LMEDS));
 
-        af_array outH;
+        af_array outH = nullptr;
         int outInl;
 
         switch (otype) {

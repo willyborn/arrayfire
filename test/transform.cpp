@@ -68,11 +68,11 @@ void genTestData(af_array *gold, af_array *in, af_array *transform,
 
     dim4 HDims = HNumDims[0];
 
-    af_array sceneArray_f32 = 0;
-    af_array goldArray_f32  = 0;
-    af_array sceneArray     = 0;
-    af_array goldArray      = 0;
-    af_array HArray         = 0;
+    af_array sceneArray_f32 = nullptr;
+    af_array goldArray_f32  = nullptr;
+    af_array sceneArray     = nullptr;
+    af_array goldArray      = nullptr;
+    af_array HArray         = nullptr;
 
     ASSERT_SUCCESS(af_load_image(&sceneArray_f32, inFiles[1].c_str(), false));
     ASSERT_SUCCESS(af_load_image(&goldArray_f32, goldFiles[0].c_str(), false));
@@ -99,10 +99,10 @@ void transformTest(string pTestFile, string pHomographyFile,
     SUPPORTED_TYPE_CHECK(T);
     IMAGEIO_ENABLED_CHECK();
 
-    af_array sceneArray = 0;
-    af_array goldArray  = 0;
-    af_array outArray   = 0;
-    af_array HArray     = 0;
+    af_array sceneArray = nullptr;
+    af_array goldArray  = nullptr;
+    af_array outArray   = nullptr;
+    af_array HArray     = nullptr;
 
     dim_t odim0 = 0;
     dim_t odim1 = 0;
@@ -245,9 +245,9 @@ class TransformV2 : public Transform<T> {
     bool invert;
 
     TransformV2()
-        : gold(0)
-        , in(0)
-        , transform(0)
+        : gold(nullptr)
+        , in(nullptr)
+        , transform(nullptr)
         , odim0(0)
         , odim1(0)
         , method(AF_INTERP_NEAREST)
@@ -263,9 +263,9 @@ class TransformV2 : public Transform<T> {
         if (in != 0) { ASSERT_SUCCESS(af_release_array(in)); }
         if (gold != 0) { ASSERT_SUCCESS(af_release_array(gold)); }
 
-        gold      = 0;
-        in        = 0;
-        transform = 0;
+        gold      = nullptr;
+        in        = nullptr;
+        transform = nullptr;
     }
 
     void TearDown() { releaseArrays(); }
@@ -340,8 +340,8 @@ class TransformV2 : public Transform<T> {
             }
         }
 
-        af_array out_  = 0;
-        af_array gold_ = 0;
+        af_array out_  = nullptr;
+        af_array gold_ = nullptr;
 
         if (metadata->getOutputArrayType() == SUB_ARRAY) {
             // There are two full arrays. One will be injected with the gold
@@ -392,7 +392,7 @@ class TransformV2 : public Transform<T> {
         SUPPORTED_TYPE_CHECK(T);
         IMAGEIO_ENABLED_CHECK();
 
-        af_array out = 0;
+        af_array out = nullptr;
         TestOutputArrayInfo metadata(out_array_type);
         genTestOutputArray(&out, gold_dims.ndims(), gold_dims.get(),
                            (af_dtype)dtype_traits<T>::af_type, &metadata);
@@ -437,11 +437,11 @@ TYPED_TEST(TransformV2TuxNearest, UseReorderedOutputArray) {
 class TransformNullArgs : public TransformV2TuxNearest<float> {
    protected:
     af_array out;
-    TransformNullArgs() : out(0) {}
+    TransformNullArgs() : out(nullptr) {}
 };
 
 TEST_F(TransformNullArgs, NullOutputPtr) {
-    af_array *out_ptr = 0;
+    af_array *out_ptr = nullptr;
     ASSERT_EQ(AF_ERR_ARG,
               af_transform(out_ptr, this->in, this->transform, this->odim0,
                            this->odim1, this->method, this->invert));
@@ -460,7 +460,7 @@ TEST_F(TransformNullArgs, NullTransformArray) {
 }
 
 TEST_F(TransformNullArgs, V2NullOutputPtr) {
-    af_array *out_ptr = 0;
+    af_array *out_ptr = nullptr;
     ASSERT_EQ(AF_ERR_ARG,
               af_transform_v2(out_ptr, this->in, this->transform, this->odim0,
                               this->odim1, this->method, this->invert));

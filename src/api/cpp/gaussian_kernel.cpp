@@ -16,7 +16,7 @@
 namespace af {
 array gaussianKernel(const int rows, const int cols, const double sig_r,
                      const double sig_c) {
-    af_array res;
+    af_array res = nullptr;
     AF_THROW(af_gaussian_kernel(&res, rows, cols, sig_r, sig_c));
     return array(res);
 }

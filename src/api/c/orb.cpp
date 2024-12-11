@@ -68,8 +68,8 @@ af_err af_orb(af_features* feat, af_array* desc, const af_array in,
         dim_t in_ndims = dims.ndims();
         DIM_ASSERT(1, (in_ndims == 2));
 
-        af_array tmp_desc;
-        af_dtype type = info.getType();
+        af_array tmp_desc = nullptr;
+        af_dtype type     = info.getType();
         switch (type) {
             case f32:
                 orb<float, float>(*feat, tmp_desc, in, fast_thr, max_feat,

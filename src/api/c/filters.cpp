@@ -155,7 +155,7 @@ af_err af_minfilt(af_array *out, const af_array in, const dim_t wind_length,
         dim_t input_ndims = dims.ndims();
         DIM_ASSERT(1, (input_ndims >= 2));
 
-        af_array mask;
+        af_array mask = nullptr;
         dim_t wdims[] = {wind_length, wind_width};
         AF_CHECK(af_constant(&mask, 1, 2, wdims, info.getType()));
 
@@ -182,7 +182,7 @@ af_err af_maxfilt(af_array *out, const af_array in, const dim_t wind_length,
         dim_t input_ndims = dims.ndims();
         DIM_ASSERT(1, (input_ndims >= 2));
 
-        af_array mask;
+        af_array mask = nullptr;
         dim_t wdims[] = {wind_length, wind_width};
         AF_CHECK(af_constant(&mask, 1, 2, wdims, info.getType()));
 

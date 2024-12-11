@@ -64,8 +64,8 @@ struct meanvar_test {
                  vector<typename varOutType<T>::type> &&mean,
                  vector<typename varOutType<T>::type> &&variance)
         : test_description_(description)
-        , in_(0)
-        , weights_(0)
+        , in_(nullptr)
+        , weights_(nullptr)
         , bias_(bias)
         , dim_(dim) {
         af_retain_array(&in_, in);
@@ -91,7 +91,7 @@ struct meanvar_test {
         other.weights_ = 0;
     }
     meanvar_test &operator=(meanvar_test<T> &&other) = default;
-    meanvar_test &operator=(meanvar_test<T> &other)  = delete;
+    meanvar_test &operator=(meanvar_test<T> &other) = delete;
 
     meanvar_test(const meanvar_test<T> &other)
         : test_description_(other.test_description_)
@@ -125,10 +125,10 @@ class MeanVarTyped : public ::testing::TestWithParam<meanvar_test<T>> {
     void meanvar_test_function(const meanvar_test<T> &test) {
         SUPPORTED_TYPE_CHECK(T);
         SUPPORTED_TYPE_CHECK(outType<T>);
-        af_array mean, var;
+        af_array mean = nullptr, var = nullptr;
 
         // Cast to the expected type
-        af_array in = 0;
+        af_array in = nullptr;
         ASSERT_SUCCESS(
             af_cast(&in, test.in_, (af_dtype)dtype_traits<T>::af_type));
 
@@ -165,7 +165,7 @@ class MeanVarTyped : public ::testing::TestWithParam<meanvar_test<T>> {
         array mean, var;
 
         // Cast to the expected type
-        af_array in_tmp = 0;
+        af_array in_tmp = nullptr;
         ASSERT_SUCCESS(af_retain_array(&in_tmp, test.in_));
         array in(in_tmp);
         in = in.as((af_dtype)dtype_traits<T>::af_type);
@@ -197,7 +197,7 @@ class MeanVarTyped : public ::testing::TestWithParam<meanvar_test<T>> {
     }
 };
 
-af_array empty = 0;
+af_array empty = nullptr;
 
 enum test_size { MEANVAR_SMALL, MEANVAR_LARGE };
 

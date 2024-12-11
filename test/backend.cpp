@@ -42,7 +42,7 @@ void testFunction(af_backend expected) {
 
     ASSERT_EQ(expected, activeBackend);
 
-    af_array outArray = 0;
+    af_array outArray = nullptr;
     dim_t dims[]      = {32, 32};
     EXPECT_EQ(AF_SUCCESS, af_randu(&outArray, 2, dims, f32));
 

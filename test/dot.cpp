@@ -71,9 +71,9 @@ void dotTest(string pTestFile, const int resultIdx,
     dim4 aDims = numDims[0];
     dim4 bDims = numDims[1];
 
-    af_array a   = 0;
-    af_array b   = 0;
-    af_array out = 0;
+    af_array a   = nullptr;
+    af_array b   = nullptr;
+    af_array out = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&a, &(in[0].front()), aDims.ndims(),
                                    aDims.get(),
@@ -126,8 +126,8 @@ void dotAllTest(string pTestFile, const int resultIdx,
     dim4 aDims = numDims[0];
     dim4 bDims = numDims[1];
 
-    af_array a = 0;
-    af_array b = 0;
+    af_array a = nullptr;
+    af_array b = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&a, &(in[0].front()), aDims.ndims(),
                                    aDims.get(),

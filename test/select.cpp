@@ -466,10 +466,10 @@ TEST_P(SelectLR_, BatchR) {
 }
 
 TEST(Select, InvalidSizeOfAB) {
-    af_array a    = 0;
-    af_array b    = 0;
-    af_array cond = 0;
-    af_array out  = 0;
+    af_array a    = nullptr;
+    af_array b    = nullptr;
+    af_array cond = nullptr;
+    af_array out  = nullptr;
 
     double val = 0;
     dim_t dims = 10;
@@ -493,10 +493,10 @@ TEST(Select, InvalidSizeOfAB) {
 }
 
 TEST(Select, InvalidSizeOfCond) {
-    af_array a    = 0;
-    af_array b    = 0;
-    af_array cond = 0;
-    af_array out  = 0;
+    af_array a    = nullptr;
+    af_array b    = nullptr;
+    af_array cond = nullptr;
+    af_array out  = nullptr;
 
     double val = 0;
     dim_t dims = 10;

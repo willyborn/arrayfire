@@ -45,8 +45,8 @@ void cannyTest(string pTestFile) {
     readTests<T, char, int>(pTestFile, numDims, in, tests);
 
     dim4 sDims        = numDims[0];
-    af_array outArray = 0;
-    af_array sArray   = 0;
+    af_array outArray = nullptr;
+    af_array sArray   = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&sArray, &(in[0].front()), sDims.ndims(),
                                    sDims.get(),
@@ -107,13 +107,13 @@ void cannyImageOtsuTest(string pTestFile, bool isColor) {
     size_t testCount = inDims.size();
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array _inArray  = 0;
-        af_array inArray   = 0;
-        af_array _outArray = 0;
-        af_array cstArray  = 0;
-        af_array mulArray  = 0;
-        af_array outArray  = 0;
-        af_array goldArray = 0;
+        af_array _inArray  = nullptr;
+        af_array inArray   = nullptr;
+        af_array _outArray = nullptr;
+        af_array cstArray  = nullptr;
+        af_array mulArray  = nullptr;
+        af_array outArray  = nullptr;
+        af_array goldArray = nullptr;
 
         inFiles[testId].insert(0, string(TEST_DIR "/CannyEdgeDetector/"));
         outFiles[testId].insert(0, string(TEST_DIR "/CannyEdgeDetector/"));
@@ -161,8 +161,8 @@ TEST(CannyEdgeDetector, OtsuThreshold) {
 }
 
 TEST(CannyEdgeDetector, InvalidSizeArray) {
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<float> in(100, 1);
 
@@ -180,8 +180,8 @@ TEST(CannyEdgeDetector, InvalidSizeArray) {
 }
 
 TEST(CannyEdgeDetector, Array4x4_Invalid) {
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<float> in(16, 1);
 
@@ -199,8 +199,8 @@ TEST(CannyEdgeDetector, Array4x4_Invalid) {
 }
 
 TEST(CannyEdgeDetector, Sobel5x5_Invalid) {
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<float> in(25, 1);
 

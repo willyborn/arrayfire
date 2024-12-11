@@ -421,7 +421,7 @@ TEST(Array, ISSUE_951) {
 }
 
 TEST(Array, CreateHandleInvalidNullDimsPointer) {
-    af_array out = 0;
+    af_array out = nullptr;
     EXPECT_EQ(AF_ERR_ARG, af_create_handle(&out, 1, NULL, f32));
 }
 
@@ -489,7 +489,7 @@ TEST(DeviceId, Different) {
         ASSERT_NE(getDevice(), getDeviceId(a));
         ASSERT_EQ(getDevice(), getDeviceId(b));
 
-        af_array c;
+        af_array c = nullptr;
         af_err err = af_matmul(&c, a.get(), b.get(), AF_MAT_NONE, AF_MAT_NONE);
         af::sync();
         ASSERT_EQ(err, AF_SUCCESS);

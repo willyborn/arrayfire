@@ -263,8 +263,8 @@ void fftTest(int targetDevice, string pTestFile, dim_t pad0 = 0, dim_t pad1 = 0,
     readTestsFromFile<inType, outType>(pTestFile, numDims, in, tests);
 
     dim4 dims         = numDims[0];
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
 
     ASSERT_SUCCESS(af_set_device(targetDevice));
 

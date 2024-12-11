@@ -76,7 +76,7 @@ af_err af_cplx(af_array *out, const af_array in) {
         }
         if (info.ndims() == 0) { return af_retain_array(out, in); }
 
-        af_array tmp;
+        af_array tmp = nullptr;
         AF_CHECK(af_constant(&tmp, 0, info.ndims(), info.dims().get(), type));
 
         af_array res;

@@ -68,10 +68,10 @@ void joinTest(string pTestFile, const unsigned dim, const unsigned in0,
     dim4 i0dims = numDims[in0];
     dim4 i1dims = numDims[in1];
 
-    af_array in0Array  = 0;
-    af_array in1Array  = 0;
-    af_array outArray  = 0;
-    af_array tempArray = 0;
+    af_array in0Array  = nullptr;
+    af_array in1Array  = nullptr;
+    af_array outArray  = nullptr;
+    af_array tempArray = nullptr;
 
     if (isSubRef) {
         ASSERT_SUCCESS(af_create_array(&tempArray, &(in[in0].front()),

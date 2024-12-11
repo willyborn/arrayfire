@@ -54,8 +54,8 @@ void medfiltTest(string pTestFile, dim_t w_len, dim_t w_wid,
     readTests<T, T, int>(pTestFile, numDims, in, tests);
 
     dim4 dims         = numDims[0];
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
@@ -114,8 +114,8 @@ void medfilt1_Test(string pTestFile, dim_t w_wid, af_border_type pad) {
     readTests<T, T, int>(pTestFile, numDims, in, tests);
 
     dim4 dims         = numDims[0];
-    af_array outArray = 0;
-    af_array inArray  = 0;
+    af_array outArray = nullptr;
+    af_array inArray  = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&inArray, &(in[0].front()), dims.ndims(),
                                    dims.get(),
@@ -178,9 +178,9 @@ void medfiltImageTest(string pTestFile, dim_t w_len, dim_t w_wid) {
     size_t testCount = inDims.size();
 
     for (size_t testId = 0; testId < testCount; ++testId) {
-        af_array inArray   = 0;
-        af_array outArray  = 0;
-        af_array goldArray = 0;
+        af_array inArray   = nullptr;
+        af_array outArray  = nullptr;
+        af_array goldArray = nullptr;
         dim_t nElems       = 0;
 
         inFiles[testId].insert(0, string(TEST_DIR "/medianfilter/"));
@@ -207,8 +207,8 @@ template<typename T>
 void medfiltInputTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<T> in(100, 1);
 
@@ -236,8 +236,8 @@ template<typename T>
 void medfiltWindowTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<T> in(100, 1);
 
@@ -259,8 +259,8 @@ template<typename T>
 void medfilt1d_WindowTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<T> in(100, 1);
 
@@ -282,8 +282,8 @@ template<typename T>
 void medfiltPadTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<T> in(100, 1);
 
@@ -309,8 +309,8 @@ template<typename T>
 void medfilt1d_PadTest(void) {
     SUPPORTED_TYPE_CHECK(T);
 
-    af_array inArray  = 0;
-    af_array outArray = 0;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     vector<T> in(100, 1);
 

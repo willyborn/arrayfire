@@ -41,8 +41,8 @@ void uniqueTest(string pTestFile) {
         dim4 dims = numDims[d];
         vector<T> in(data[d].begin(), data[d].end());
 
-        af_array inArray  = 0;
-        af_array outArray = 0;
+        af_array inArray  = nullptr;
+        af_array outArray = nullptr;
 
         // Get input array
         ASSERT_SUCCESS(af_create_array(&inArray, &in.front(), dims.ndims(),
@@ -104,9 +104,9 @@ void setTest(string pTestFile) {
         dim4 dims1 = numDims[d + 1];
         vector<T> in1(data[d + 1].begin(), data[d + 1].end());
 
-        af_array inArray0 = 0;
-        af_array inArray1 = 0;
-        af_array outArray = 0;
+        af_array inArray0 = nullptr;
+        af_array inArray1 = nullptr;
+        af_array outArray = nullptr;
 
         ASSERT_SUCCESS(af_create_array(&inArray0, &in0.front(), dims0.ndims(),
                                        dims0.get(),

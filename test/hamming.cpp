@@ -58,10 +58,10 @@ void hammingMatcherTest(string pTestFile, int feat_dim) {
 
     dim4 qDims     = numDims[0];
     dim4 tDims     = numDims[1];
-    af_array query = 0;
-    af_array train = 0;
-    af_array idx   = 0;
-    af_array dist  = 0;
+    af_array query = nullptr;
+    af_array train = nullptr;
+    af_array idx   = nullptr;
+    af_array dist  = nullptr;
 
     ASSERT_SUCCESS(af_create_array(&query, &(in[0].front()), qDims.ndims(),
                                    qDims.get(),

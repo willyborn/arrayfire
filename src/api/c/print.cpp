@@ -96,7 +96,7 @@ static void print(const char *exp, af_array arr, const int precision,
 
     vector<T> data(info.elements());
 
-    af_array arrT;
+    af_array arrT = nullptr;
     if (transpose) {
         AF_CHECK(af_reorder(&arrT, arr, 1, 0, 2, 3));
     } else {

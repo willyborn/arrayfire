@@ -39,8 +39,8 @@ af_features getFeaturesHandle(const af_features_t feat) {
 
 af_err af_create_features(af_features *featHandle, dim_t num) {
     try {
-        af_features_t feat;
-        feat.n = num;
+        af_features_t feat = {0, nullptr, nullptr, nullptr, nullptr, nullptr};
+        feat.n             = num;
 
         if (num > 0) {
             dim_t out_dims[4] = {dim_t(num), 1, 1, 1};

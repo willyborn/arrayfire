@@ -66,8 +66,11 @@ static double median(const af_array& in) {
     AF_CHECK(af_get_data_ptr((void*)&resPtr, res));
 
     AF_CHECK(af_release_array(res));
+    res = nullptr;
     AF_CHECK(af_release_array(sarrHandle));
+    sarrHandle = nullptr;
     AF_CHECK(af_release_array(temp));
+    temp = nullptr;
 
     if (nElems % 2 == 1) {
         result = resPtr[0];
@@ -113,7 +116,9 @@ static af_array median(const af_array& in, const dim_t dim) {
         // Return as floats for consistency
         AF_CHECK(af_cast(&out, left, f32));
         AF_CHECK(af_release_array(left));
+        left = nullptr;
         AF_CHECK(af_release_array(sortedIn_handle));
+        sortedIn_handle = nullptr;
     } else {
         // ((mid-1)+mid)/2 is our guy
         dim4 dims      = input.dims();
@@ -135,8 +140,8 @@ static af_array median(const af_array& in, const dim_t dim) {
             AF_CHECK(af_cast(&lleft, left, f32));
             AF_CHECK(af_cast(&rright, right, f32));
             AF_CHECK(af_release_array(left));
+            left = lleft;
             AF_CHECK(af_release_array(right));
-            left  = lleft;
             right = rright;
         }
 

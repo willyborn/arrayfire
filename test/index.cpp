@@ -621,7 +621,7 @@ TEST(Index, Docs_Util_C_API) {
         return 1;
     }
     af_print_array(out);
-    af_release_array(out);
+    af_release_array(out);out=nullptr;
 
     af_seq zeroIndices = af_make_seq(0.0, 9.0, 2.0);
 

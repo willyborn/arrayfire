@@ -64,6 +64,7 @@ void transformCoordinatesTest(string pTestFile) {
         ASSERT_SUCCESS(af_get_data_ptr((void*)&outData.front(), outArray));
 
         ASSERT_SUCCESS(af_release_array(outArray));
+        outArray        = nullptr;
         const float thr = 1.f;
 
         for (dim_t elIter = 0; elIter < outEl; elIter++) {

@@ -67,12 +67,14 @@ class IndexGeneralizedLegacy : public ::testing::TestWithParam<index_params> {
 
         ASSERT_SUCCESS(af_cast(&inArray_, inTmp, get<1>(params)));
         af_release_array(inTmp);
+        inTmp = nullptr;
 
         af_array idxTmp = nullptr;
         ASSERT_SUCCESS(af_create_array(&idxTmp, &(in[1].front()), dims1.ndims(),
                                        dims1.get(), f32));
         ASSERT_SUCCESS(af_cast(&idxArray_, idxTmp, get<2>(params)));
         af_release_array(idxTmp);
+        idxTmp = nullptr;
 
         vector<float> hgold = tests[0];
         af_array goldTmp    = nullptr;

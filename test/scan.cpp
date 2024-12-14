@@ -56,12 +56,12 @@ void scanTest(string pTestFile, int off = 0, bool isSubRef = false,
     vector<Ti> in(data[0].size());
     transform(data[0].begin(), data[0].end(), in.begin(), convert_to<Ti, int>);
 
-    af_array inArray   = nullptr;
-    af_array outArray  = nullptr;
-    af_array tempArray = nullptr;
+    af_array inArray  = nullptr;
+    af_array outArray = nullptr;
 
     // Get input array
     if (isSubRef) {
+        af_array tempArray = nullptr;
         ASSERT_SUCCESS(af_create_array(&tempArray, &in.front(), dims.ndims(),
                                        dims.get(),
                                        (af_dtype)dtype_traits<Ti>::af_type));
@@ -94,9 +94,8 @@ void scanTest(string pTestFile, int off = 0, bool isSubRef = false,
 
         // Delete
         delete[] outData;
-        ASSERT_SUCCESS(af_release_array(outArray));
     }
-
+    ASSERT_SUCCESS(af_release_array(outArray));
     ASSERT_SUCCESS(af_release_array(inArray));
 }
 

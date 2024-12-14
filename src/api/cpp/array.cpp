@@ -586,7 +586,9 @@ array::array_proxy &af::array::array_proxy::operator=(const array &other) {
                             parent_dims.get()));
         impl->parent_->set(unflattened);
         AF_THROW(af_release_array(par_arr));
+        par_arr = nullptr;
         AF_THROW(af_release_array(flat_res));
+        flat_res = nullptr;
     } else {
         res = flat_res;
     }
@@ -743,7 +745,10 @@ array::array_proxy::operator array() const {
     }
 
     AF_THROW(af_index_gen(&tmp, arr, AF_MAX_DIMS, impl->indices_));
-    if (impl->is_linear_) { AF_THROW(af_release_array(arr)); }
+    if (impl->is_linear_) {
+        AF_THROW(af_release_array(arr));
+        arr = nullptr;
+    }
 
     int dim = gforDim(impl->indices_);
     if (tmp && dim >= 0) {
@@ -795,7 +800,10 @@ MEM_INDEX(slices(int first, int last), slices(first, last));
 array &array::operator=(const array &other) {
     if (this == &other || this->get() == other.get()) { return *this; }
     // TODO(umar): Unsafe. loses data if af_weak_copy fails
-    if (this->arr != nullptr) { AF_THROW(af_release_array(this->arr)); }
+    if (this->arr != nullptr) {
+        AF_THROW(af_release_array(this->arr));
+        this->arr = nullptr;
+    }
 
     af_array temp = nullptr;
     AF_THROW(af_retain_array(&temp, other.get()));

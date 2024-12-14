@@ -79,6 +79,7 @@ void trsTest(string pTestFile, bool isSubRef = false,
         ASSERT_SUCCESS(af_transpose(&outArray, subArray, false));
         // destroy the temporary indexed Array
         ASSERT_SUCCESS(af_release_array(subArray));
+        subArray = nullptr;
 
         dim_t nElems;
         ASSERT_SUCCESS(af_get_elements(&nElems, outArray));

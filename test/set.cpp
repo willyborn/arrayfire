@@ -66,7 +66,9 @@ void uniqueTest(string pTestFile) {
         }
 
         if (inArray != 0) af_release_array(inArray);
+        inArray = nullptr;
         if (outArray != 0) af_release_array(outArray);
+        outArray = nullptr;
     }
 }
 

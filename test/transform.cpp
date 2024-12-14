@@ -259,13 +259,18 @@ class TransformV2 : public Transform<T> {
     void SetUp() {}
 
     void releaseArrays() {
-        if (transform != 0) { ASSERT_SUCCESS(af_release_array(transform)); }
-        if (in != 0) { ASSERT_SUCCESS(af_release_array(in)); }
-        if (gold != 0) { ASSERT_SUCCESS(af_release_array(gold)); }
-
-        gold      = nullptr;
-        in        = nullptr;
-        transform = nullptr;
+        if (transform != 0) {
+            ASSERT_SUCCESS(af_release_array(transform));
+            transform = nullptr;
+        }
+        if (in != 0) {
+            ASSERT_SUCCESS(af_release_array(in));
+            in = nullptr;
+        }
+        if (gold != 0) {
+            ASSERT_SUCCESS(af_release_array(gold));
+            gold = nullptr;
+        }
     }
 
     void TearDown() { releaseArrays(); }

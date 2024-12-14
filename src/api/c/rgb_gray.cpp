@@ -95,6 +95,7 @@ static af_array gray2rgb(const af_array& in, const float r, const float g,
     Array<cType> expr3 = arithOp<cType, af_mul_t>(mod_in, bCnst, matDims);
 
     AF_CHECK(af_release_array(mod_input));
+    mod_input = nullptr;
 
     // join channels
     dim4 odims(expr1.dims()[0], expr1.dims()[1], 3);

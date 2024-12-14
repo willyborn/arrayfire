@@ -217,6 +217,7 @@ void sparseArithTesterDiv(const int m, const int n, int factor,
     ASSERT_EQ(AF_ERR_NOT_SUPPORTED,
               af_div(&out_temp, B.get(), OA.get(), false));
     if (out_temp != 0) af_release_array(out_temp);
+    out_temp = nullptr;
 
     // We will test this by converting the COO to CSR and CSR to COO and
     // comparing them. In essense, we are comparing the resR and resO

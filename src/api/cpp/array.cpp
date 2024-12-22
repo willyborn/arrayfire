@@ -173,7 +173,7 @@ struct array::array_proxy::array_proxy_impl {
     array_proxy_impl operator=(const array_proxy_impl &&) = delete;
 };
 
-array::array(const af_array handle) : arr(handle) {}
+array::array(af_array &handle) : arr(handle) { handle = nullptr; }
 
 array::array() : arr(initEmptyArray(f32, 0, 1, 1, 1)) {}
 

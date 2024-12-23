@@ -20,6 +20,7 @@
 #include <relative_difference.hpp>
 
 #include <algorithm>
+#include <cassert>
 #include <cfloat>
 #include <cmath>
 #include <complex>
@@ -126,7 +127,8 @@ std::ostream &operator<<(std::ostream &os, half_float::half val) {
 }  // namespace half_float
 
 // Called by ASSERT_ARRAYS_EQ
-::testing::AssertionResult assertArrayEq(std::string aName, std::string bName,
+::testing::AssertionResult assertArrayEq(const std::string &aName,
+                                         const std::string &bName,
                                          const af::array &a, const af::array &b,
                                          float maxAbsDiff) {
     af::dtype aType = a.type();
@@ -191,9 +193,9 @@ std::ostream &operator<<(std::ostream &os, half_float::half val) {
 }
 
 template<typename T>
-::testing::AssertionResult imageEq(std::string aName, std::string bName,
-                                   const af::array &a, const af::array &b,
-                                   float maxAbsDiff) {
+::testing::AssertionResult imageEq(const std::string &aName,
+                                   const std::string &bName, const af::array &a,
+                                   const af::array &b, float maxAbsDiff) {
     std::vector<T> avec(a.elements());
     a.host(avec.data());
     std::vector<T> bvec(b.elements());
@@ -239,7 +241,8 @@ template<typename T>
 }
 
 // Called by ASSERT_ARRAYS_EQ
-::testing::AssertionResult assertImageEq(std::string aName, std::string bName,
+::testing::AssertionResult assertImageEq(const std::string &aName,
+                                         const std::string &bName,
                                          const af::array &a, const af::array &b,
                                          float maxAbsDiff) {
     af::dtype aType = a.type();
@@ -496,14 +499,14 @@ const af::cdouble &operator+(const af::cdouble &val) { return val; }
 const af_half &operator+(const af_half &val) { return val; }
 
 // Calculate a multi-dimensional coordinates' linearized index
-dim_t ravelIdx(af::dim4 coords, af::dim4 strides) {
+dim_t ravelIdx(const af::dim4 &coords, const af::dim4 &strides) {
     return std::inner_product(coords.get(), coords.get() + 4, strides.get(),
                               0LL);
 }
 
 // Calculate a linearized index's multi-dimensonal coordinates in an af::array,
 //  given its dimension sizes and strides
-af::dim4 unravelIdx(dim_t idx, af::dim4 dims, af::dim4 strides) {
+af::dim4 unravelIdx(dim_t idx, const af::dim4 &dims, const af::dim4 &strides) {
     af::dim4 coords;
     coords[3] = idx / (strides[3]);
     coords[2] = idx / (strides[2]) % dims[2];
@@ -531,7 +534,7 @@ af::dim4 calcStrides(const af::dim4 &parentDim) {
     return out;
 }
 
-std::string minimalDim4(af::dim4 coords, af::dim4 dims) {
+std::string minimalDim4(const af::dim4 &coords, const af::dim4 &dims) {
     std::ostringstream os;
     os << "(" << coords[0];
     if (dims[1] > 1 || dims[2] > 1 || dims[3] > 1) { os << ", " << coords[1]; }
@@ -549,10 +552,15 @@ void genRegularArray(TestOutputArrayInfo *metadata, const unsigned ndims,
     metadata->init(ndims, dims, ty);
 }
 
-void genRegularArray(TestOutputArrayInfo *metadata, double val,
+void genRegularArray(TestOutputArrayInfo *metadata, const double val,
                      const unsigned ndims, const dim_t *const dims,
                      const af_dtype ty) {
     metadata->init(val, ndims, dims, ty);
+}
+
+// Generates an empty array
+void genEmptyArray(TestOutputArrayInfo *metadata, const af_dtype ty) {
+    metadata->init(0, nullptr, ty);
 }
 
 // Generates a large, random array, and extracts a subarray for the af_*
@@ -582,7 +590,7 @@ void genSubArray(TestOutputArrayInfo *metadata, const unsigned ndims,
     metadata->init(ndims, full_arr_dims, ty, &subarr_idxs[0]);
 }
 
-void genSubArray(TestOutputArrayInfo *metadata, double val,
+void genSubArray(TestOutputArrayInfo *metadata, const double val,
                  const unsigned ndims, const dim_t *const dims,
                  const af_dtype ty) {
     const dim_t pad_size = 2;
@@ -635,7 +643,7 @@ void genReorderedArray(TestOutputArrayInfo *metadata, const unsigned ndims,
     metadata->setOutput(reordered);
 }
 
-void genReorderedArray(TestOutputArrayInfo *metadata, double val,
+void genReorderedArray(TestOutputArrayInfo *metadata, const double val,
                        const unsigned ndims, const dim_t *const dims,
                        const af_dtype ty) {
     // The rest of this function assumes that dims has 4 elements. Just in case
@@ -661,6 +669,7 @@ void genReorderedArray(TestOutputArrayInfo *metadata, double val,
                               reorder_idxs[3]));
     metadata->setOutput(reordered);
 }
+
 // Partner function of testWriteToOutputArray. This generates the "special"
 // array that testWriteToOutputArray will use to check if the af_* function
 // correctly uses an existing array as its output
@@ -673,31 +682,223 @@ void genTestOutputArray(af_array *out_ptr, const unsigned ndims,
         case REORDERED_ARRAY:
             genReorderedArray(metadata, ndims, dims, ty);
             break;
+        case EMPTY_ARRAY: genEmptyArray(metadata, ty); break;
         default: break;
     }
     *out_ptr = metadata->getOutput();
 }
 
-void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
-                        const dim_t *const dims, const af_dtype ty,
-                        TestOutputArrayInfo *metadata) {
+void genTestOutputArray(af_array *out_ptr, const double val,
+                        const unsigned ndims, const dim_t *const dims,
+                        const af_dtype ty, TestOutputArrayInfo *metadata) {
     switch (metadata->getOutputArrayType()) {
         case FULL_ARRAY: genRegularArray(metadata, val, ndims, dims, ty); break;
         case SUB_ARRAY: genSubArray(metadata, val, ndims, dims, ty); break;
         case REORDERED_ARRAY:
             genReorderedArray(metadata, val, ndims, dims, ty);
             break;
+        case EMPTY_ARRAY: genEmptyArray(metadata, ty);
         default: break;
     }
     *out_ptr = metadata->getOutput();
 }
 
+/////////////////////
+TestInputArrayInfo::TestInputArrayInfo()
+    : in_arr(nullptr)
+    , in_subarr(nullptr)
+    , in_subarr_ndims(0)
+    , in_arr_type(NULL_ARRAY)
+    , in_subarr_idxs{af_span, af_span, af_span, af_span} {}
+
+TestInputArrayInfo::TestInputArrayInfo(const TestInputArrayType arr_type)
+    : in_arr(nullptr)
+    , in_subarr(nullptr)
+    , in_subarr_ndims(0)
+    , in_arr_type(arr_type)
+    , in_subarr_idxs{af_span, af_span, af_span, af_span} {}
+
+TestInputArrayInfo::~TestInputArrayInfo() {
+    af_release_array(in_subarr);
+    in_subarr = nullptr;
+    af_release_array(in_arr);
+    in_arr = nullptr;
+}
+
+void TestInputArrayInfo::init(const af_array inArray) {
+    unsigned ndims = 0;
+    ASSERT_SUCCESS(af_get_numdims(&ndims, inArray));
+    switch (in_arr_type) {
+        case EMPTY_ARRAY: assert(ndims == 0);
+        case JIT_ARRAY:
+        case FULL_ARRAY:
+        case REORDERED_ARRAY:
+            ASSERT_SUCCESS(af_retain_array(&in_arr, inArray));
+            break;
+        default: bool WrongMetaType = false; assert(WrongMetaType);
+    }
+}
+
+void TestInputArrayInfo::init(const unsigned ndims, const dim_t *const dims,
+                              const af_seq *const subarr_idxs,
+                              const af_array inArray) {
+    assert(in_arr_type == SUB_ARRAY);
+    assert(ndims >= 0 && ndims <= 4);
+
+    af_dtype type;
+    ASSERT_SUCCESS(af_get_type(&type, inArray));
+
+    // Create parent array
+    ASSERT_SUCCESS(af_randu(&in_arr, ndims, dims, type));
+    for (uint i = 0; i < ndims; ++i) { in_subarr_idxs[i] = subarr_idxs[i]; }
+    in_subarr_ndims = ndims;
+
+    ASSERT_SUCCESS(af_index(&in_subarr, in_arr, ndims, subarr_idxs));
+    ASSERT_SUCCESS(af_assign_seq(&in_arr, in_arr, ndims, subarr_idxs, inArray));
+}
+
+af_array TestInputArrayInfo::getInput() const {
+    af_array result = nullptr;
+    switch (in_arr_type) {
+        case SUB_ARRAY: af_retain_array(&result, in_subarr); break;
+        case JIT_ARRAY: {
+            dim_t dims[4];
+            af_get_dims(dims + 0, dims + 1, dims + 2, dims + 3, in_arr);
+            af_dtype type;
+            af_get_type(&type, in_arr);
+            af_array zero_arr = nullptr;
+            af_constant(&zero_arr, 0, 4, dims, type);
+            af_add(&result, zero_arr, in_arr, false);
+            af_release_array(zero_arr);
+            zero_arr = nullptr;
+        } break;
+        case NULL_ARRAY: break;
+        default: af_retain_array(&result, in_arr);
+    }
+    return (result);
+}
+af_array TestInputArrayInfo::getFullInput() const {
+    af_array result = nullptr;
+    af_retain_array(&result, in_arr);
+    return result;
+}
+const af_seq *TestInputArrayInfo::getSubArrayIdxs() const {
+    return &in_subarr_idxs[0];
+}
+dim_t TestInputArrayInfo::getSubArrayNumDims() const { return in_subarr_ndims; }
+TestInputArrayType TestInputArrayInfo::getInputArrayType() const {
+    return in_arr_type;
+}
+
+void genRegularArray(TestInputArrayInfo *metadata, const af_array inArray) {
+    metadata->init(inArray);
+}
+
+void genEmptyArray(TestInputArrayInfo *metadata, const af_dtype ty) {
+    af_array emptyArray = NULL;
+    af_create_handle(&emptyArray, 0, NULL, ty);
+    metadata->init(emptyArray);
+}
+
+void genSubArray(TestInputArrayInfo *metadata, const af_array inArray) {
+    unsigned ndims;
+    ASSERT_SUCCESS(af_get_numdims(&ndims, inArray));
+    dim_t dims[4];
+    ASSERT_SUCCESS(
+        af_get_dims(&dims[0], &dims[1], &dims[2], &dims[3], inArray));
+
+    const dim_t pad_size = 2;
+
+    // The large array is padded on both sides of each dimension
+    // Padding is only applied if the dimension is used, i.e. if dims[i] > 1
+    dim_t full_arr_dims[4] = {dims[0], dims[1], dims[2], dims[3]};
+    for (unsigned i = 0; i < ndims; ++i) {
+        full_arr_dims[i] = dims[i] + 2 * pad_size;
+    }
+
+    // Calculate index of sub-array. These will be used also by
+    // testWriteToOutputArray so that the gold sub array will be placed in
+    // the same location. Currently, this location is the center of the
+    // large array
+    af_seq subarr_idxs[4] = {af_span, af_span, af_span, af_span};
+    for (unsigned i = 0; i < ndims; ++i) {
+        af_seq idx     = {pad_size, pad_size + dims[i] - 1.0, 1.0};
+        subarr_idxs[i] = idx;
+    }
+
+    metadata->init(ndims, full_arr_dims, &subarr_idxs[0], inArray);
+}
+
+void genReorderedArray(TestInputArrayInfo *metadata, const af_array inArray) {
+    // This reorder combination will not move data around, but will simply
+    // call modDims and modStrides (see src/api/c/reorder.cpp).
+    // The output will be checked if it is still correct even with the
+    // modified dims and strides "hack" with no data movement
+
+    // WILL GENERATE ERRORS ON MOST af_<func>, due to unlinearity on dim0
+    // SHOULD THIS BE SUPPORTED ??
+    // const std::vector<uint> reorder_idxs{1, 2, 3, 0};
+    const vector<uint> reorder_idxs{0, 2, 1, 3};
+
+    // Prepare the input array into the reverse order, so that a final
+    // reorder will generate the original array again although with special
+    // strides
+    vector<uint> reverse_idxs(reorder_idxs.size(), 0);
+    for (unsigned i = 0; i < reorder_idxs.size(); ++i) {
+        reverse_idxs[reorder_idxs[i]] = i;
+    }
+    af_array reverse = nullptr;
+    ASSERT_SUCCESS(af_reorder(&reverse, inArray, reverse_idxs[0],
+                              reverse_idxs[1], reverse_idxs[2],
+                              reverse_idxs[3]));
+
+    // By copying the array, the data is written in the new order in the
+    // buffer. The reorder will generate the original inArray with the
+    // correct dimensions and new strides
+    af_array reverseBis = nullptr;
+    ASSERT_SUCCESS(af_copy_array(&reverseBis, reverse));
+    ASSERT_SUCCESS(af_release_array(reverse));
+    reverse = nullptr;
+
+    // Regenerate inArray, although now with special strides
+    af_array inArrayBis = nullptr;
+    ASSERT_SUCCESS(af_reorder(&inArrayBis, reverseBis, reorder_idxs[0],
+                              reorder_idxs[1], reorder_idxs[2],
+                              reorder_idxs[3]));
+    ASSERT_SUCCESS(af_release_array(reverseBis));
+    reverseBis = nullptr;
+    metadata->init(inArrayBis);
+    ASSERT_SUCCESS(af_release_array(inArrayBis));
+    inArrayBis = nullptr;
+}
+
+void genTestInputArray(af_array *out_ptr, const af_array inArray,
+                       TestInputArrayInfo *metadata) {
+    ASSERT_SUCCESS(af_release_array(*out_ptr));
+    *out_ptr = nullptr;
+    switch (metadata->getInputArrayType()) {
+        case FULL_ARRAY:
+        case JIT_ARRAY: genRegularArray(metadata, inArray); break;
+        case SUB_ARRAY: genSubArray(metadata, inArray); break;
+        case REORDERED_ARRAY: genReorderedArray(metadata, inArray); break;
+        case EMPTY_ARRAY: {
+            af_dtype ty = f32;
+            if (inArray != NULL) { af_get_type(&ty, inArray); }
+            genEmptyArray(metadata, ty);
+        } break;
+        case NULL_ARRAY:
+        default: break;
+    }
+    *out_ptr = metadata->getInput();
+}
+
+////////////////////////////
 // Partner function of genTestOutputArray. This uses the same "special"
 // array that genTestOutputArray generates, and checks whether the
 // af_* function wrote to that array correctly
 ::testing::AssertionResult testWriteToOutputArray(
-    std::string gold_name, std::string result_name, const af_array gold,
-    const af_array out, TestOutputArrayInfo *metadata) {
+    const std::string &gold_name, const std::string &result_name,
+    const af_array gold, const af_array out, TestOutputArrayInfo *metadata) {
     // In the case of NULL_ARRAY, the output array starts out as null.
     // After the af_* function is called, it shouldn't be null anymore
     if (metadata->getOutputArrayType() == NULL_ARRAY) {
@@ -720,8 +921,8 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 
     if (metadata->getOutputArrayType() == SUB_ARRAY) {
         // There are two full arrays. One will be injected with the gold
-        // subarray, the other should have already been injected with the af_*
-        // function's output. Then we compare the two full arrays
+        // subarray, the other should have already been injected with the
+        // af_* function's output. Then we compare the two full arrays
         af_array gold_full_array = metadata->getFullOutputCopy();
         af_assign_seq(&gold_full_array, gold_full_array,
                       metadata->getSubArrayNumDims(),
@@ -736,8 +937,9 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 }
 
 // Called by ASSERT_SPECIAL_ARRAYS_EQ
-::testing::AssertionResult assertArrayEq(std::string aName, std::string bName,
-                                         std::string metadataName,
+::testing::AssertionResult assertArrayEq(const std::string &aName,
+                                         const std::string &bName,
+                                         const std::string &metadataName,
                                          const af_array a, const af_array b,
                                          TestOutputArrayInfo *metadata) {
     UNUSED(metadataName);
@@ -745,7 +947,8 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 }
 
 // To support C API
-::testing::AssertionResult assertArrayEq(std::string aName, std::string bName,
+::testing::AssertionResult assertArrayEq(const std::string &aName,
+                                         const std::string &bName,
                                          const af_array a, const af_array b) {
     af_array aa = nullptr, bb = nullptr;
     af_retain_array(&aa, a);
@@ -756,8 +959,9 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 }
 
 // Called by ASSERT_ARRAYS_NEAR
-::testing::AssertionResult assertArrayNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertArrayNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af::array &a,
                                            const af::array &b,
                                            float maxAbsDiff) {
@@ -766,8 +970,9 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 }
 
 // Called by ASSERT_IMAGES_NEAR
-::testing::AssertionResult assertImageNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertImageNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af_array &a, const af_array &b,
                                            float maxAbsDiff) {
     UNUSED(maxAbsDiffName);
@@ -780,8 +985,9 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 }
 
 // Called by ASSERT_IMAGES_NEAR
-::testing::AssertionResult assertImageNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertImageNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af::array &a,
                                            const af::array &b,
                                            float maxAbsDiff) {
@@ -790,8 +996,9 @@ void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
 }
 
 // To support C API
-::testing::AssertionResult assertArrayNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertArrayNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af_array a, const af_array b,
                                            float maxAbsDiff) {
     af_array aa = nullptr, bb = nullptr;
@@ -819,7 +1026,8 @@ void cleanSlate() {
 
     af::setMemStepSize(step_bytes);
 
-    ASSERT_EQ(af::getMemStepSize(), step_bytes);
+    ASSERT_EQ(af::getMemStepSize(), step_bytes)
+        << "No remaining allocated buffers expected\n";
 }
 
 template<typename inType, typename outType>
@@ -1140,7 +1348,7 @@ TestOutputArrayInfo::TestOutputArrayInfo()
     for (uint i = 0; i < 4; ++i) { out_subarr_idxs[i] = af_span; }
 }
 
-TestOutputArrayInfo::TestOutputArrayInfo(TestOutputArrayType arr_type)
+TestOutputArrayInfo::TestOutputArrayInfo(const TestOutputArrayType arr_type)
     : out_arr(nullptr)
     , out_arr_cpy(nullptr)
     , out_subarr(nullptr)
@@ -1150,14 +1358,18 @@ TestOutputArrayInfo::TestOutputArrayInfo(TestOutputArrayType arr_type)
 }
 
 TestOutputArrayInfo::~TestOutputArrayInfo() {
-    if (out_subarr) af_release_array(out_subarr);
-    if (out_arr_cpy) af_release_array(out_arr_cpy);
-    if (out_arr) af_release_array(out_arr);
+    af_release_array(out_subarr);
+    out_subarr = nullptr;
+    af_release_array(out_arr);
+    out_arr = nullptr;
+    af_release_array(out_arr_cpy);
+    out_arr_cpy = nullptr;
 }
 
 void TestOutputArrayInfo::init(const unsigned ndims, const dim_t *const dims,
                                const af_dtype ty) {
-    ASSERT_SUCCESS(af_randu(&out_arr, ndims, dims, ty));
+    ASSERT_SUCCESS(ndims == 0 ? af_create_handle(&out_arr, 0, NULL, ty)
+                              : af_randu(&out_arr, ndims, dims, ty));
 }
 
 void TestOutputArrayInfo::init(const unsigned ndims, const dim_t *const dims,
@@ -1177,15 +1389,20 @@ void TestOutputArrayInfo::init(double val, const unsigned ndims,
     switch (ty) {
         case c32:
         case c64:
-            af_constant_complex(&out_arr, val, 0.0, ndims, dims, ty);
+            ASSERT_SUCCESS(
+                af_constant_complex(&out_arr, val, 0.0, ndims, dims, ty));
             break;
         case s64:
-            af_constant_long(&out_arr, static_cast<intl>(val), ndims, dims);
+            ASSERT_SUCCESS(af_constant_long(&out_arr, static_cast<intl>(val),
+                                            ndims, dims));
             break;
         case u64:
-            af_constant_ulong(&out_arr, static_cast<uintl>(val), ndims, dims);
+            ASSERT_SUCCESS(af_constant_ulong(&out_arr, static_cast<uintl>(val),
+                                             ndims, dims));
             break;
-        default: af_constant(&out_arr, val, ndims, dims, ty); break;
+        default:
+            ASSERT_SUCCESS(af_constant(&out_arr, val, ndims, dims, ty));
+            break;
     }
 }
 
@@ -1201,7 +1418,7 @@ void TestOutputArrayInfo::init(double val, const unsigned ndims,
     ASSERT_SUCCESS(af_index(&out_subarr, out_arr, ndims, subarr_idxs));
 }
 
-af_array TestOutputArrayInfo::getOutput() {
+af_array TestOutputArrayInfo::getOutput() const {
     if (out_arr_type == SUB_ARRAY) {
         return out_subarr;
     } else {
@@ -1209,16 +1426,22 @@ af_array TestOutputArrayInfo::getOutput() {
     }
 }
 
-void TestOutputArrayInfo::setOutput(af_array array) {
-    if (out_arr != nullptr) { ASSERT_SUCCESS(af_release_array(out_arr)); }
-    out_arr = array;
+void TestOutputArrayInfo::setOutput(const af_array array) {
+    if (array != out_arr) {
+        ASSERT_SUCCESS(af_release_array(out_arr));
+        out_arr = array;
+    }
 }
 
-af_array TestOutputArrayInfo::getFullOutput() { return out_arr; }
-af_array TestOutputArrayInfo::getFullOutputCopy() { return out_arr_cpy; }
-af_seq *TestOutputArrayInfo::getSubArrayIdxs() { return &out_subarr_idxs[0]; }
-dim_t TestOutputArrayInfo::getSubArrayNumDims() { return out_subarr_ndims; }
-TestOutputArrayType TestOutputArrayInfo::getOutputArrayType() {
+af_array TestOutputArrayInfo::getFullOutput() const { return out_arr; }
+af_array TestOutputArrayInfo::getFullOutputCopy() const { return out_arr_cpy; }
+const af_seq *TestOutputArrayInfo::getSubArrayIdxs() const {
+    return &out_subarr_idxs[0];
+}
+dim_t TestOutputArrayInfo::getSubArrayNumDims() const {
+    return out_subarr_ndims;
+}
+TestOutputArrayType TestOutputArrayInfo::getOutputArrayType() const {
     return out_arr_type;
 }
 
@@ -1268,9 +1491,11 @@ TestOutputArrayType TestOutputArrayInfo::getOutputArrayType() {
                 return ::testing::AssertionFailure()
                        << "\nEnd of file reached, expected more data, "
                        << "following are some reasons this happens.\n"
-                       << "\t - use of template type that doesn't match data "
+                       << "\t - use of template type that doesn't match "
+                          "data "
                           "type\n"
-                       << "\t - the mtx file itself doesn't have enough data\n";
+                       << "\t - the mtx file itself doesn't have enough "
+                          "data\n";
             }
             I[i] = r - 1;
             J[i] = c - 1;
@@ -1294,9 +1519,11 @@ TestOutputArrayType TestOutputArrayInfo::getOutputArrayType() {
                 return ::testing::AssertionFailure()
                        << "\nEnd of file reached, expected more data, "
                        << "following are some reasons this happens.\n"
-                       << "\t - use of template type that doesn't match data "
+                       << "\t - use of template type that doesn't match "
+                          "data "
                           "type\n"
-                       << "\t - the mtx file itself doesn't have enough data\n";
+                       << "\t - the mtx file itself doesn't have enough "
+                          "data\n";
             }
             I[i] = r - 1;
             J[i] = c - 1;
@@ -1318,29 +1545,40 @@ TestOutputArrayType TestOutputArrayInfo::getOutputArrayType() {
 // TODO: perform conversion on device for CUDA and OpenCL
 template<typename T>
 af_err conv_image(af_array *out, af_array in) {
-    af_array outArray = nullptr;
+    /* af_array outArray=nullptr;
 
     dim_t d0, d1, d2, d3;
-    af_get_dims(&d0, &d1, &d2, &d3, in);
+    ASSERT_SUCCESS(af_get_dims(&d0, &d1, &d2, &d3, in));
     af::dim4 idims(d0, d1, d2, d3);
 
     dim_t nElems = 0;
-    af_get_elements(&nElems, in);
+    ASSERT_SUCCESS(af_get_elements(&nElems, in));
 
     float *in_data = new float[nElems];
-    af_get_data_ptr(in_data, in);
+    ASSERT_SUCCESS(af_get_data_ptr(in_data, in));
 
     T *out_data = new T[nElems];
 
     for (int i = 0; i < (int)nElems; i++) out_data[i] = (T)in_data[i];
 
-    af_create_array(&outArray, out_data, idims.ndims(), idims.get(),
-                    (af_dtype)af::dtype_traits<T>::af_type);
+    ASSERT_SUCCESS(af_create_array(&outArray, out_data, idims.ndims(),
+                                   idims.get(),
+                                   (af_dtype)af::dtype_traits<T>::af_type));
 
-    std::swap(*out, outArray);
+    ASSERT_SUCCESS(af_release_array(*out));
+    *out = outArray;
 
     delete[] in_data;
     delete[] out_data;
+    */
+    if (*out != in) {
+        af_release_array(*out);
+        *out = nullptr;
+    }
+    af_array outArray = nullptr;
+    af_cast(&outArray, in, (af_dtype)af::dtype_traits<T>::af_type);
+    af_release_array(*out);
+    *out = outArray;
 
     return AF_SUCCESS;
 }
@@ -1364,7 +1602,7 @@ INSTANTIATE(unsigned long long);
 #undef INSTANTIATE
 
 template<typename T>
-af::array cpu_randu(const af::dim4 dims) {
+af::array cpu_randu(const af::dim4 &dims) {
     typedef typename af::dtype_traits<T>::base_type BT;
 
     bool isTypeCplx = is_same_type<T, af::cfloat>::value ||
@@ -1384,7 +1622,7 @@ af::array cpu_randu(const af::dim4 dims) {
     return af::array(dims, (T *)&out[0]);
 }
 
-#define INSTANTIATE(To) template af::array cpu_randu<To>(const af::dim4 dims)
+#define INSTANTIATE(To) template af::array cpu_randu<To>(const af::dim4 &dims)
 INSTANTIATE(float);
 INSTANTIATE(double);
 INSTANTIATE(unsigned char);
@@ -1497,8 +1735,8 @@ vector<sparseCooValue<T>> toCooVector(const af::array &arr) {
         }
     }
 
-    // Remove zero elements from result to ensure that only non-zero elements
-    // are compared
+    // Remove zero elements from result to ensure that only non-zero
+    // elements are compared
     out.erase(std::remove_if(out.begin(), out.end(), isZero<T>), out.end());
     std::sort(begin(out), end(out));
     return out;
@@ -1511,9 +1749,11 @@ bool operator==(const sparseCooValue<T> &lhs, sparseCooValue<T> &rhs) {
 }
 
 template<typename T>
-std::string printContext(const std::vector<T> &hGold, std::string goldName,
-                         const std::vector<T> &hOut, std::string outName,
-                         af::dim4 arrDims, af::dim4 arrStrides, dim_t idx) {
+std::string printContext(const std::vector<T> &hGold,
+                         const std::string &goldName,
+                         const std::vector<T> &hOut, const std::string &outName,
+                         const af::dim4 &arrDims, const af::dim4 &arrStrides,
+                         dim_t idx) {
     std::ostringstream os;
 
     af::dim4 coords = unravelIdx(idx, arrDims, arrStrides);
@@ -1550,8 +1790,8 @@ std::string printContext(const std::vector<T> &hGold, std::string goldName,
 
     // Get dim0 positions and out/reference values for the context window
     //
-    // Also get the max string length between the position and out/ref values
-    // per item so that it can be used later as the field width for
+    // Also get the max string length between the position and out/ref
+    // values per item so that it can be used later as the field width for
     // displaying each item in the context window
     for (dim_t i = 0; i < ctxElems; ++i) {
         std::ostringstream tmpOs;
@@ -1617,10 +1857,10 @@ std::string printContext(const std::vector<T> &hGold, std::string goldName,
 
 template<typename T>
 std::string printContext(const std::vector<sparseCooValue<T>> &hGold,
-                         std::string goldName,
+                         const std::string &goldName,
                          const std::vector<sparseCooValue<T>> &hOut,
-                         std::string outName, af::dim4 arrDims,
-                         af::dim4 arrStrides, dim_t idx) {
+                         const std::string &outName, const af::dim4 &arrDims,
+                         const af::dim4 &arrStrides, dim_t idx) {
     std::ostringstream os;
 
     af::dim4 coords = unravelIdx(idx, arrDims, arrStrides);
@@ -1702,10 +1942,10 @@ std::string printContext(const std::vector<sparseCooValue<T>> &hGold,
 }
 
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
-                                      const std::vector<T> &a, af::dim4 aDims,
-                                      const std::vector<T> &b, af::dim4 bDims,
-                                      float maxAbsDiff, IntegerTag) {
+::testing::AssertionResult elemWiseEq(
+    const std::string &aName, const std::string &bName, const std::vector<T> &a,
+    const af::dim4 &aDims, const std::vector<T> &b, const af::dim4 &bDims,
+    float maxAbsDiff, IntegerTag) {
     UNUSED(maxAbsDiff);
     typedef typename std::vector<T>::const_iterator iter;
 
@@ -1768,10 +2008,10 @@ bool absMatch::operator()<std::complex<double>>(
 }
 
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
-                                      const std::vector<T> &a, af::dim4 aDims,
-                                      const std::vector<T> &b, af::dim4 bDims,
-                                      float maxAbsDiff, FloatTag) {
+::testing::AssertionResult elemWiseEq(
+    const std::string &aName, const std::string &bName, const std::vector<T> &a,
+    const af::dim4 &aDims, const std::vector<T> &b, const af::dim4 &bDims,
+    float maxAbsDiff, FloatTag) {
     typedef typename std::vector<T>::const_iterator iter;
     // TODO(mark): Modify equality for float
     std::pair<iter, iter> mismatches =
@@ -1806,20 +2046,22 @@ template<typename T>
 }
 
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
+::testing::AssertionResult elemWiseEq(const std::string &aName,
+                                      const std::string &bName,
                                       const std::vector<sparseCooValue<T>> &a,
-                                      af::dim4 aDims,
+                                      const af::dim4 &aDims,
                                       const std::vector<sparseCooValue<T>> &b,
-                                      af::dim4 bDims, float maxAbsDiff,
+                                      const af::dim4 &bDims, float maxAbsDiff,
                                       IntegerTag) {
     return ::testing::AssertionFailure() << "Unsupported sparse type\n";
 }
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
+::testing::AssertionResult elemWiseEq(const std::string &aName,
+                                      const std::string &bName,
                                       const std::vector<sparseCooValue<T>> &a,
-                                      af::dim4 aDims,
+                                      const af::dim4 &aDims,
                                       const std::vector<sparseCooValue<T>> &b,
-                                      af::dim4 bDims, float maxAbsDiff,
+                                      const af::dim4 &bDims, float maxAbsDiff,
                                       FloatTag) {
     typedef typename std::vector<sparseCooValue<T>>::const_iterator iter;
     // TODO(mark): Modify equality for float
@@ -1853,7 +2095,8 @@ template<typename T>
 }
 
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
+::testing::AssertionResult elemWiseEq(const std::string &aName,
+                                      const std::string &bName,
                                       const af::array &a, const af::array &b,
                                       float maxAbsDiff) {
     typedef typename cond_type<
@@ -1879,12 +2122,12 @@ template<typename T>
 }
 
 template<typename T>
-::testing::AssertionResult assertArrayEq(std::string aName,
-                                         std::string aDimsName,
-                                         std::string bName,
+::testing::AssertionResult assertArrayEq(const std::string &aName,
+                                         const std::string &aDimsName,
+                                         const std::string &bName,
                                          const std::vector<T> &hA,
-                                         af::dim4 aDims, const af::array &b,
-                                         float maxAbsDiff) {
+                                         const af::dim4 &aDims,
+                                         const af::array &b, float maxAbsDiff) {
     af::dtype aDtype = (af::dtype)af::dtype_traits<T>::af_type;
     if (aDtype != b.type()) {
         return ::testing::AssertionFailure()
@@ -1921,12 +2164,13 @@ template<typename T>
 
 // To support C API
 template<typename T>
-::testing::AssertionResult assertArrayEq(std::string hA_name,
-                                         std::string aDimsName,
-                                         std::string bName,
+::testing::AssertionResult assertArrayEq(const std::string &hA_name,
+                                         const std::string &aDimsName,
+                                         const std::string &bName,
                                          const std::vector<T> &hA,
-                                         af::dim4 aDims, const af_array b) {
-    af_array bb = nullptr;
+                                         const af::dim4 &aDims,
+                                         const af_array b) {
+    af_array bb = 0;
     af_retain_array(&bb, b);
     af::array bbb(bb);
     return assertArrayEq(hA_name, aDimsName, bName, hA, aDims, bbb);
@@ -1935,28 +2179,32 @@ template<typename T>
 // Called by ASSERT_VEC_ARRAY_NEAR
 template<typename T>
 ::testing::AssertionResult assertArrayNear(
-    std::string hA_name, std::string aDimsName, std::string bName,
-    std::string maxAbsDiffName, const std::vector<T> &hA, af::dim4 aDims,
-    const af::array &b, float maxAbsDiff) {
+    const std::string &hA_name, const std::string &aDimsName,
+    const std::string &bName, const std::string &maxAbsDiffName,
+    const std::vector<T> &hA, const af::dim4 &aDims, const af::array &b,
+    float maxAbsDiff) {
     UNUSED(maxAbsDiffName);
     return assertArrayEq(hA_name, aDimsName, bName, hA, aDims, b, maxAbsDiff);
 }
 
 // To support C API
 template<typename T>
-::testing::AssertionResult assertArrayNear(
-    std::string hA_name, std::string aDimsName, std::string bName,
-    std::string maxAbsDiffName, const std::vector<T> &hA, af::dim4 aDims,
-    const af_array b, float maxAbsDiff) {
-    af_array bb = nullptr;
+::testing::AssertionResult assertArrayNear(const std::string &hA_name,
+                                           const std::string &aDimsName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
+                                           const std::vector<T> &hA,
+                                           const af::dim4 &aDims,
+                                           const af_array b, float maxAbsDiff) {
+    af_array bb = 0;
     af_retain_array(&bb, b);
     af::array bbb(bb);
     return assertArrayNear(hA_name, aDimsName, bName, maxAbsDiffName, hA, aDims,
                            bbb, maxAbsDiff);
 }
 
-::testing::AssertionResult assertRefEq(std::string hA_name,
-                                       std::string expected_name,
+::testing::AssertionResult assertRefEq(const std::string &hA_name,
+                                       const std::string &expected_name,
                                        const af::array &a, int expected) {
     int count = 0;
     af_get_data_ref_count(&count, a.get());
@@ -1972,26 +2220,29 @@ template<typename T>
     }
 }
 
-#define INSTANTIATE(To)                                                        \
-    template std::string printContext(                                         \
-        const std::vector<To> &hGold, std::string goldName,                    \
-        const std::vector<To> &hOut, std::string outName, af::dim4 arrDims,    \
-        af::dim4 arrStrides, dim_t idx);                                       \
-    template ::testing::AssertionResult assertArrayEq<To>(                     \
-        std::string aName, std::string aDimsName, std::string bName,           \
-        const std::vector<To> &hA, af::dim4 aDims, const af::array &b,         \
-        float maxAbsDiff);                                                     \
-    template ::testing::AssertionResult assertArrayEq<To>(                     \
-        std::string hA_name, std::string aDimsName, std::string bName,         \
-        const std::vector<To> &hA, af::dim4 aDims, const af_array b);          \
-    template ::testing::AssertionResult assertArrayNear<To>(                   \
-        std::string hA_name, std::string aDimsName, std::string bName,         \
-        std::string maxAbsDiffName, const std::vector<To> &hA, af::dim4 aDims, \
-        const af_array b, float maxAbsDiff);                                   \
-    template ::testing::AssertionResult assertArrayNear<To>(                   \
-        std::string hA_name, std::string aDimsName, std::string bName,         \
-        std::string maxAbsDiffName, const std::vector<To> &hA, af::dim4 aDims, \
-        const af::array &b, float maxAbsDiff)
+#define INSTANTIATE(To)                                                       \
+    template std::string printContext(                                        \
+        const std::vector<To> &hGold, const std::string &goldName,            \
+        const std::vector<To> &hOut, const std::string &outName,              \
+        const af::dim4 &arrDims, const af::dim4 &arrStrides, dim_t idx);      \
+    template ::testing::AssertionResult assertArrayEq<To>(                    \
+        const std::string &aName, const std::string &aDimsName,               \
+        const std::string &bName, const std::vector<To> &hA,                  \
+        const af::dim4 &aDims, const af::array &b, float maxAbsDiff);         \
+    template ::testing::AssertionResult assertArrayEq<To>(                    \
+        const std::string &hA_name, const std::string &aDimsName,             \
+        const std::string &bName, const std::vector<To> &hA,                  \
+        const af::dim4 &aDims, const af_array b);                             \
+    template ::testing::AssertionResult assertArrayNear<To>(                  \
+        const std::string &hA_name, const std::string &aDimsName,             \
+        const std::string &bName, const std::string &maxAbsDiffName,          \
+        const std::vector<To> &hA, const af::dim4 &aDims, const af_array b,   \
+        float maxAbsDiff);                                                    \
+    template ::testing::AssertionResult assertArrayNear<To>(                  \
+        const std::string &hA_name, const std::string &aDimsName,             \
+        const std::string &bName, const std::string &maxAbsDiffName,          \
+        const std::vector<To> &hA, const af::dim4 &aDims, const af::array &b, \
+        float maxAbsDiff)
 
 INSTANTIATE(float);
 INSTANTIATE(double);

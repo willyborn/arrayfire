@@ -265,7 +265,7 @@ template<typename T>
 af_err conv_image(af_array *out, af_array in);
 
 template<typename T>
-af::array cpu_randu(const af::dim4 dims);
+af::array cpu_randu(const af::dim4 &dims);
 
 void cleanSlate();
 
@@ -284,82 +284,89 @@ const af::cdouble &operator+(const af::cdouble &val);
 const af_half &operator+(const af_half &val);
 
 // Calculate a multi-dimensional coordinates' linearized index
-dim_t ravelIdx(af::dim4 coords, af::dim4 strides);
+dim_t ravelIdx(const af::dim4 &coords, const af::dim4 &strides);
 
 // Calculate a linearized index's multi-dimensonal coordinates in an af::array,
 //  given its dimension sizes and strides
-af::dim4 unravelIdx(dim_t idx, af::dim4 dims, af::dim4 strides);
+af::dim4 unravelIdx(dim_t idx, const af::dim4 &dims, const af::dim4 &strides);
 
 af::dim4 unravelIdx(dim_t idx, af::array arr);
 
 af::dim4 calcStrides(const af::dim4 &parentDim);
 
-std::string minimalDim4(af::dim4 coords, af::dim4 dims);
+std::string minimalDim4(const af::dim4 &coords, const af::dim4 &dims);
 
 template<typename T>
-std::string printContext(const std::vector<T> &hGold, std::string goldName,
-                         const std::vector<T> &hOut, std::string outName,
-                         af::dim4 arrDims, af::dim4 arrStrides, dim_t idx);
+std::string printContext(const std::vector<T> &hGold,
+                         const std::string &goldName,
+                         const std::vector<T> &hOut, const std::string &outName,
+                         const af::dim4 &arrDims, const af::dim4 &arrStrides,
+                         dim_t idx);
 
 struct FloatTag {};
 struct IntegerTag {};
 
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
-                                      const std::vector<T> &a, af::dim4 aDims,
-                                      const std::vector<T> &b, af::dim4 bDims,
-                                      float maxAbsDiff, IntegerTag);
+::testing::AssertionResult elemWiseEq(
+    const std::string &aName, const std::string &bName, const std::vector<T> &a,
+    const af::dim4 &aDims, const std::vector<T> &b, const af::dim4 &bDims,
+    float maxAbsDiff, IntegerTag);
 
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
-                                      const std::vector<T> &a, af::dim4 aDims,
-                                      const std::vector<T> &b, af::dim4 bDims,
-                                      float maxAbsDiff, FloatTag);
+::testing::AssertionResult elemWiseEq(
+    const std::string &aName, const std::string &bName, const std::vector<T> &a,
+    const af::dim4 &aDims, const std::vector<T> &b, const af::dim4 &bDims,
+    float maxAbsDiff, FloatTag);
 
 template<typename T>
-::testing::AssertionResult elemWiseEq(std::string aName, std::string bName,
+::testing::AssertionResult elemWiseEq(const std::string &aName,
+                                      const std::string &bName,
                                       const af::array &a, const af::array &b,
                                       float maxAbsDiff);
 
-::testing::AssertionResult assertArrayEq(std::string aName, std::string bName,
+::testing::AssertionResult assertArrayEq(const std::string &aName,
+                                         const std::string &bName,
                                          const af::array &a, const af::array &b,
                                          float maxAbsDiff = 0.f);
 
 // Called by ASSERT_VEC_ARRAY_EQ
 template<typename T>
-::testing::AssertionResult assertArrayEq(std::string aName,
-                                         std::string aDimsName,
-                                         std::string bName,
-                                         const std::vector<T> &hA,
-                                         af::dim4 aDims, const af::array &b,
-                                         float maxAbsDiff = 0.0f);
+::testing::AssertionResult assertArrayEq(
+    const std::string &aName, const std::string &aDimsName,
+    const std::string &bName, const std::vector<T> &hA, const af::dim4 &aDims,
+    const af::array &b, float maxAbsDiff = 0.0f);
 
 // To support C API
-::testing::AssertionResult assertArrayEq(std::string aName, std::string bName,
+::testing::AssertionResult assertArrayEq(const std::string &aName,
+                                         const std::string &bName,
                                          const af_array a, const af_array b);
 
 // To support C API
 template<typename T>
-::testing::AssertionResult assertArrayEq(std::string hA_name,
-                                         std::string aDimsName,
-                                         std::string bName,
+::testing::AssertionResult assertArrayEq(const std::string &hA_name,
+                                         const std::string &aDimsName,
+                                         const std::string &bName,
                                          const std::vector<T> &hA,
-                                         af::dim4 aDims, const af_array b);
+                                         const af::dim4 &aDims,
+                                         const af_array b);
 
 // Called by ASSERT_ARRAYS_NEAR
-::testing::AssertionResult assertArrayNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertArrayNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af::array &a,
                                            const af::array &b,
                                            float maxAbsDiff);
 
-::testing::AssertionResult assertImageNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertImageNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af_array &a, const af_array &b,
                                            float maxAbsDiff);
 
-::testing::AssertionResult assertImageNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertImageNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af::array &a,
                                            const af::array &b,
                                            float maxAbsDiff);
@@ -367,25 +374,30 @@ template<typename T>
 // Called by ASSERT_VEC_ARRAY_NEAR
 template<typename T>
 ::testing::AssertionResult assertArrayNear(
-    std::string hA_name, std::string aDimsName, std::string bName,
-    std::string maxAbsDiffName, const std::vector<T> &hA, af::dim4 aDims,
-    const af::array &b, float maxAbsDiff);
+    const std::string &hA_name, const std::string &aDimsName,
+    const std::string &bName, const std::string &maxAbsDiffName,
+    const std::vector<T> &hA, const af::dim4 &aDims, const af::array &b,
+    float maxAbsDiff);
 
 // To support C API
-::testing::AssertionResult assertArrayNear(std::string aName, std::string bName,
-                                           std::string maxAbsDiffName,
+::testing::AssertionResult assertArrayNear(const std::string &aName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
                                            const af_array a, const af_array b,
                                            float maxAbsDiff);
 
 // To support C API
 template<typename T>
-::testing::AssertionResult assertArrayNear(
-    std::string hA_name, std::string aDimsName, std::string bName,
-    std::string maxAbsDiffName, const std::vector<T> &hA, af::dim4 aDims,
-    const af_array b, float maxAbsDiff);
+::testing::AssertionResult assertArrayNear(const std::string &hA_name,
+                                           const std::string &aDimsName,
+                                           const std::string &bName,
+                                           const std::string &maxAbsDiffName,
+                                           const std::vector<T> &hA,
+                                           const af::dim4 &aDims,
+                                           const af_array b, float maxAbsDiff);
 
-::testing::AssertionResult assertRefEq(std::string hA_name,
-                                       std::string expected_name,
+::testing::AssertionResult assertRefEq(const std::string &hA_name,
+                                       const std::string &expected_name,
                                        const af::array &a, int expected);
 
 /// Checks if the C-API arrayfire function returns successfully
@@ -531,40 +543,46 @@ template<typename T>
                                                const char *fileName);
 #endif  // USE_MTX
 
-enum TestOutputArrayType {
-    // Test af_* function when given a null array as its output
-    NULL_ARRAY,
-
-    // Test af_* function when given an output array that is the same size as
-    // the expected output
-    FULL_ARRAY,
-
-    // Test af_* function when given an output array that is a sub-array of a
-    // larger array (the sub-array size is still the same size as the expected
-    // output). Only the sub-array must be modified by the af_* function
+enum TestArrayType {
+    FULL_ARRAY = 0,
+    JIT_ARRAY,
     SUB_ARRAY,
-
-    // Test af_* function when given an output array that was previously
-    // reordered (but after the reorder, has still the same shape as the
-    // expected
-    // output). This specifically uses the reorder behavior when dim0 is kept,
-    // and thus no data movement is done - only the dims and strides are
-    // modified
-    REORDERED_ARRAY
+    REORDERED_ARRAY,
+    NULL_ARRAY,
+    EMPTY_ARRAY,
 };
 
+// NULL_ARRAY: Test af_* function when given a null array as its output
+// EMPTY_ARRAY: Test af_* function when given an empty array as its output
+// FULL_ARRAY: Test af_* function when given an output array that is the same
+// size as the expected output SUB_ARRAY: Test af_* function when given an
+// output array that is a sub-array of a larger array (the sub-array size is
+// still the same size as the expected output). Only the sub-array must be
+// modified by the af_* function REORDERED_ARRAY: Test af_* function when given
+// an output array that was previously reordered (but after the reorder, has
+// still the same shape as the expected output). This specifically uses the
+// reorder behavior when dim0 is kept, and thus no data movement is done - only
+// the dims and strides are modified
+#define TestOutputArrayType TestArrayType
+#define TestOutputArrayTypeALL \
+    { FULL_ARRAY, JIT_ARRAY, SUB_ARRAY, REORDERED_ARRAY, NULL_ARRAY, EMPTY_ARRAY }
+
 class TestOutputArrayInfo {
+   protected:
     af_array out_arr;
     af_array out_arr_cpy;
     af_array out_subarr;
     dim_t out_subarr_ndims;
     af_seq out_subarr_idxs[4];
     TestOutputArrayType out_arr_type;
+    const char *TestArrayTypeName[6]{"FULL_ARRAY", "JIT_ARRAY","SUB_ARRAY",
+                                     "REORDERED_ARRAY", "NULL_ARRAY",
+                                     "EMPTY_ARRAY"};
 
    public:
     TestOutputArrayInfo();
 
-    TestOutputArrayInfo(TestOutputArrayType arr_type);
+    TestOutputArrayInfo(const TestOutputArrayType arr_type);
 
     ~TestOutputArrayInfo();
 
@@ -579,15 +597,18 @@ class TestOutputArrayInfo {
     void init(double val, const unsigned ndims, const dim_t *const dims,
               const af_dtype ty, const af_seq *const subarr_idxs);
 
-    af_array getOutput();
+    af_array getOutput() const;
 
-    void setOutput(af_array array);
+    void setOutput(const af_array array);
 
-    af_array getFullOutput();
-    af_array getFullOutputCopy();
-    af_seq *getSubArrayIdxs();
-    dim_t getSubArrayNumDims();
-    TestOutputArrayType getOutputArrayType();
+    af_array getFullOutput() const;
+    af_array getFullOutputCopy() const;
+    const af_seq *getSubArrayIdxs() const;
+    dim_t getSubArrayNumDims() const;
+    TestOutputArrayType getOutputArrayType() const;
+    const char *getOutputArrayTypeName() const {
+        return TestArrayTypeName[out_arr_type];
+    };
 };
 
 // Generates a random array. testWriteToOutputArray expects that it will receive
@@ -595,9 +616,12 @@ class TestOutputArrayInfo {
 void genRegularArray(TestOutputArrayInfo *metadata, const unsigned ndims,
                      const dim_t *const dims, const af_dtype ty);
 
-void genRegularArray(TestOutputArrayInfo *metadata, double val,
+void genRegularArray(TestOutputArrayInfo *metadata, const double val,
                      const unsigned ndims, const dim_t *const dims,
                      const af_dtype ty);
+
+// Generates an empty array.
+void genEmptyArray(TestOutputArrayInfo *metadata, const af_dtype ty);
 
 // Generates a large, random array, and extracts a subarray for the af_*
 // function to use. testWriteToOutputArray expects that the large array that it
@@ -606,7 +630,7 @@ void genRegularArray(TestOutputArrayInfo *metadata, double val,
 void genSubArray(TestOutputArrayInfo *metadata, const unsigned ndims,
                  const dim_t *const dims, const af_dtype ty);
 
-void genSubArray(TestOutputArrayInfo *metadata, double val,
+void genSubArray(TestOutputArrayInfo *metadata, const double val,
                  const unsigned ndims, const dim_t *const dims,
                  const af_dtype ty);
 
@@ -616,9 +640,10 @@ void genSubArray(TestOutputArrayInfo *metadata, double val,
 void genReorderedArray(TestOutputArrayInfo *metadata, const unsigned ndims,
                        const dim_t *const dims, const af_dtype ty);
 
-void genReorderedArray(TestOutputArrayInfo *metadata, double val,
+void genReorderedArray(TestOutputArrayInfo *metadata, const double val,
                        const unsigned ndims, const dim_t *const dims,
                        const af_dtype ty);
+
 // Partner function of testWriteToOutputArray. This generates the "special"
 // array that testWriteToOutputArray will use to check if the af_* function
 // correctly uses an existing array as its output
@@ -626,22 +651,87 @@ void genTestOutputArray(af_array *out_ptr, const unsigned ndims,
                         const dim_t *const dims, const af_dtype ty,
                         TestOutputArrayInfo *metadata);
 
-void genTestOutputArray(af_array *out_ptr, double val, const unsigned ndims,
-                        const dim_t *const dims, const af_dtype ty,
-                        TestOutputArrayInfo *metadata);
+void genTestOutputArray(af_array *out_ptr, const double val,
+                        const unsigned ndims, const dim_t *const dims,
+                        const af_dtype ty, TestOutputArrayInfo *metadata);
 
 // Partner function of genTestOutputArray. This uses the same "special"
 // array that genTestOutputArray generates, and checks whether the
 // af_* function wrote to that array correctly
 ::testing::AssertionResult testWriteToOutputArray(
-    std::string gold_name, std::string result_name, const af_array gold,
-    const af_array out, TestOutputArrayInfo *metadata);
+    const std::string &gold_name, const std::string &result_name,
+    const af_array gold, const af_array out, TestOutputArrayInfo *metadata);
 
 // Called by ASSERT_SPECIAL_ARRAYS_EQ
-::testing::AssertionResult assertArrayEq(std::string aName, std::string bName,
-                                         std::string metadataName,
+::testing::AssertionResult assertArrayEq(const std::string &aName,
+                                         const std::string &bName,
+                                         const std::string &metadataName,
                                          const af_array a, const af_array b,
                                          TestOutputArrayInfo *metadata);
+
+// NULL_ARRAY: Test af_* function when given a null array as its output
+// EMPTY_ARRAY: Test af_* function for array with no elements
+// FULL_ARRAY: Test af_* function with a normal array
+// SUB_ARRAY: Test af_* function with a array that is a sub-array of a
+// larger parent array.
+// REORDERED_ARRAY: Test af_* function with an array that was previously
+// reordered (but after the reorder, has still the same shape as the
+// expected input). This specifically uses the reorder behavior when dim0 is
+// kept, and thus no data movement is done - only the dims and strides are
+// modified
+#define TestInputArrayType TestArrayType
+#define TestInputArrayTypeALL \
+    { FULL_ARRAY, JIT_ARRAY, SUB_ARRAY, REORDERED_ARRAY, NULL_ARRAY, EMPTY_ARRAY }
+
+class TestInputArrayInfo {
+   protected:
+    af_array in_arr_zero;
+    af_array in_arr;
+    af_array in_subarr;
+    dim_t in_subarr_ndims;
+    af_seq in_subarr_idxs[4];
+    TestInputArrayType in_arr_type;
+    const char *TestArrayTypeName[6]{"FULL_ARRAY", "JIT_ARRAY", "SUB_ARRAY",
+                                     "REORDERED_ARRAY", "NULL_ARRAY",
+                                     "EMPTY_ARRAY"};
+
+   public:
+    // Creates a NULL_ARRAY instance
+    TestInputArrayInfo();
+
+    // Creates a NULL_ARRAY instance with specified arr_type
+    // The array content is added by genTestInputArray() or gen<TYPE>Array()
+    // functions
+    TestInputArrayInfo(const TestInputArrayType arr_type);
+
+    ~TestInputArrayInfo();
+
+    // Assigns inArray to the instance
+    void init(const af_array inArray);
+    // ndims, dims are from the parent array
+    // dimensions of subarr_idxs from parent == dimensions inArray
+    void init(const unsigned ndims, const dim_t *const dims,
+              const af_seq *const subarr_idxs, const af_array inArray);
+
+    af_array getInput() const;
+    af_array getFullInput() const;
+    const af_seq *getSubArrayIdxs() const;
+    dim_t getSubArrayNumDims() const;
+    TestInputArrayType getInputArrayType() const;
+    const char *getInputArrayTypeName() const {
+        return TestArrayTypeName[in_arr_type];
+    };
+};
+
+void genEmptyArray(TestInputArrayInfo *metadata, const af_dtype ty);
+void genRegularArray(TestInputArrayInfo *metadata, const af_array inArray);
+void genSubArray(TestInputArrayInfo *metadata, const af_array inArray);
+void genReorderedArray(TestInputArrayInfo *metadata, const af_array inArray);
+
+// Generates an array corresponding to type of metadata.  Data from inArray
+// will be copied into the generated array.
+void genTestInputArray(af_array *out_ptr, const af_array inArray,
+                       TestInputArrayInfo *metadata);
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

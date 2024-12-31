@@ -22,8 +22,10 @@ kernel void compact(global int *reduced_block_sizes, global Tk *oKeys,
     Tk k;
     To v;
 
-    const int bOffset = bidw * oVInfo.strides[3] + bidz * oVInfo.strides[2] +
-                        bidy * oVInfo.strides[1];
+    const int obOffset = bidw * oVInfo.strides[3] + bidz * oVInfo.strides[2] +
+                         bidy * oVInfo.strides[1];
+    const int ibOffset = bidw * iVInfo.strides[3] + bidz * iVInfo.strides[2] +
+                         bidy * iVInfo.strides[1] + iVInfo.offset;
 
     // reduced_block_sizes should have inclusive sum of block sizes
     int nwrite =
@@ -31,11 +33,11 @@ kernel void compact(global int *reduced_block_sizes, global Tk *oKeys,
                    : (reduced_block_sizes[bid] - reduced_block_sizes[bid - 1]);
     int writeloc = (bid == 0) ? 0 : reduced_block_sizes[bid - 1];
 
-    k = iKeys[gid];
-    v = iVals[bOffset + gid];
+    k = iKeys[gid + iKInfo.offset];
+    v = iVals[ibOffset + gid];
 
     if (lid < nwrite) {
-        oKeys[writeloc + lid]           = k;
-        oVals[bOffset + writeloc + lid] = v;
+        oKeys[writeloc + lid]            = k;
+        oVals[obOffset + writeloc + lid] = v;
     }
 }

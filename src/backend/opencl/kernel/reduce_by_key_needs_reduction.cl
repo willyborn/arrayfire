@@ -8,15 +8,14 @@
  ********************************************************/
 
 kernel void test_needs_reduction(global int *needs_another_reduction,
-                                   global int *needs_block_boundary_reduced,
-                                   const global Tk *iKeys, KParam iKInfo,
-                                   int n) {
+                                 global int *needs_block_boundary_reduced,
+                                 const global Tk *iKeys, KParam iKInfo, int n) {
     const uint lid = get_local_id(0);
     const uint bid = get_group_id(0);
     const uint gid = get_global_id(0);
 
     Tk k;
-    if (gid < n) { k = iKeys[gid]; }
+    if (gid < n) { k = iKeys[gid + iKInfo.offset]; }
 
     local Tk keys[DIMX];
     keys[lid] = k;
@@ -32,8 +31,8 @@ kernel void test_needs_reduction(global int *needs_another_reduction,
     // last thread in each block checks if any inter-block keys need further
     // reduction
     if (gid == ((bid + 1) * DIMX) - 1 && bid < get_num_groups(0) - 1) {
-        int k0 = iKeys[gid];
-        int k1 = iKeys[gid + 1];
+        int k0 = iKeys[gid + iKInfo.offset];
+        int k1 = iKeys[gid + iKInfo.offset + 1];
         if (k0 == k1) { atomic_or(needs_block_boundary_reduced, 1); }
     }
 }

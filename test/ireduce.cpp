@@ -18,6 +18,9 @@
 #include <af/random.h>
 
 #include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
 
 using af::allTrue;
 using af::array;
@@ -30,7 +33,18 @@ using af::randu;
 using af::seq;
 using af::span;
 using std::complex;
+using std::ostringstream;
+using std::string;
 using std::vector;
+
+class IndexedReduce : public ::testing::Test {
+   public:
+    virtual void SetUp() {}
+    virtual void TearDown() {
+        // Test on buffer leaks
+        cleanSlate();
+    }
+};
 
 #define MINMAXOP(fn, ty)                                         \
     TEST(IndexedReduce, fn##_##ty##_0) {                         \
@@ -418,3 +432,121 @@ TEST(IndexedReduce, MaxCplxPreferSmallerIdxIfEqual) {
 
     ASSERT_EQ(h_max_idx[0], gold_max_idx);
 }
+
+class ARG_ERRORS : public ::testing::Test {
+   public:
+   public:
+    af_array inArray, valArray, idxArray;
+    dim_t idims[4];
+    af_array goldArray;
+    const vector<TestInputArrayType> testInputArrayTypeLIST{
+        FULL_ARRAY,       //
+        JIT_ARRAY,        //
+        SUB_ARRAY,        //
+        REORDERED_ARRAY,  //
+        EMPTY_ARRAY,      //
+        NULL_ARRAY,       //
+    };
+
+    ARG_ERRORS()
+        : inArray(nullptr)
+        , valArray(nullptr)
+        , idxArray(nullptr)
+        , goldArray(nullptr) {
+        idims[0] = idims[1] = idims[2] = idims[3] = 1;
+    }
+
+    virtual void SetUp() {
+        const vector<float> h_in = {1.0f, 2.0f, 3.0f};
+        idims[0]                 = h_in.size();
+        ASSERT_SUCCESS(af_create_array(&inArray, h_in.data(), 1, idims, f32));
+    }
+
+    void tests(af_err (*af_reduce_index)(af_array *out, af_array *idx,
+                                         const af_array in, const int dim),
+               const vector<float> &h_gold) {
+        ostringstream msg;
+        const dim_t odims[4] = {(dim_t)h_gold.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold.data(), 1, odims, f32));
+
+        af_array inArray2    = nullptr;
+        bool dimLoopFinished = false;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            for (int dim : {0, -1, 1, 4}) {
+                msg.str(string());
+                msg << "Testing array format input="
+                    << inMeta.getInputArrayTypeName() << " dim=" << dim << "\n";
+                af_err err;
+                ASSERT_NO_THROW(
+                    err = af_reduce_index(&valArray, &idxArray, inArray2, dim))
+                    << msg.str();
+
+                if (inType == NULL_ARRAY) {
+                    EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                } else if (dim < 0 || dim > 3) {
+                    EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                } else if (inType == EMPTY_ARRAY) {
+                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                    EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+                } else {
+                    unsigned int indims = 0;
+                    ASSERT_SUCCESS(af_get_numdims(&indims, inArray2));
+                    if (dim >= indims) {
+                        EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                        EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+                    } else {
+                        EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                        EXPECT_ARRAYS_EQ(goldArray, valArray) << msg.str();
+                    }
+                }
+                if (dimLoopFinished) break;
+            }
+            dimLoopFinished = true;
+        }
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_index_all)(double *real, double *imag,
+                                             unsigned *idx, const af_array in),
+               const double real, const double imag) {
+        ostringstream msg;
+        af_array inArray2 = nullptr;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            double real_ = 0., imag_ = 0.;
+            unsigned idx = 0;
+            msg.str(string());
+            msg << "Testing array format in=" << inMeta.getInputArrayTypeName()
+                << "\n";
+            af_err err;
+            ASSERT_NO_THROW(
+                err = af_reduce_index_all(&real_, &imag_, &idx, inArray2))
+                << msg.str();
+
+            if (inType == NULL_ARRAY) {
+                EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+            } else if (inType == EMPTY_ARRAY) {
+                EXPECT_EQ(AF_ERR_SIZE, err) << msg.str();
+            } else {
+                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                EXPECT_EQ(real, real_) << msg.str();
+                EXPECT_EQ(imag, imag_) << msg.str();
+            }
+        }
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+};
+
+TEST_F(ARG_ERRORS, af_imin) { tests(af_imin, {1.0}); }
+TEST_F(ARG_ERRORS, af_imin_all) { tests(af_imin_all, 1.0, 0.0); }
+
+TEST_F(ARG_ERRORS, af_imax) { tests(af_imax, {3.0}); }
+TEST_F(ARG_ERRORS, af_imax_all) { tests(af_imax_all, 3.0, 0.0); }

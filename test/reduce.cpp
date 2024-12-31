@@ -1,4 +1,4 @@
-/*******************************************************
+/*****************à**************************************
  * Copyright (c) 2014, ArrayFire
  * All rights reserved.
  *
@@ -18,6 +18,7 @@
 #include <cmath>
 #include <functional>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -30,11 +31,19 @@ using af::tile;
 using std::complex;
 using std::cout;
 using std::endl;
+using std::ostringstream;
 using std::string;
 using std::vector;
 
 template<typename T>
-class Reduce : public ::testing::Test {};
+class Reduce : public ::testing::Test {
+   public:
+    virtual void SetUp() {}
+    virtual void TearDown() {
+        // Test on buffer leaks
+        cleanSlate();
+    }
+};
 
 typedef ::testing::Types<float, double, cfloat, cdouble, uint, int, intl, uintl,
                          uchar, short, ushort>
@@ -71,6 +80,7 @@ void reduceTest(string pTestFile, int off = 0, bool isSubRef = false,
         ASSERT_SUCCESS(
             af_index(&inArray, tempArray, seqv.size(), &seqv.front()));
         ASSERT_SUCCESS(af_release_array(tempArray));
+        tempArray = nullptr;
     } else {
         ASSERT_SUCCESS(
             af_create_array(&inArray, &in.front(), dims.ndims(), dims.get(),
@@ -110,9 +120,11 @@ void reduceTest(string pTestFile, int off = 0, bool isSubRef = false,
         }
 
         ASSERT_SUCCESS(af_release_array(outArray));
+        outArray = nullptr;
     }
 
     ASSERT_SUCCESS(af_release_array(inArray));
+    inArray = nullptr;
 }
 
 template<typename T, reduceFunc OP>
@@ -191,7 +203,774 @@ TEST(Reduce,Test_Reduce_Big1)
 }
 */
 
-/////////////////////////////////// CPP //////////////////////////////////
+class ARG_ERRORS : public ::testing::Test {
+   public:
+    af_array inArray, valArray, idxArray;
+    dim_t idims[4];
+    af_array goldArray;
+    const vector<TestInputArrayType> testInputArrayTypeLIST{
+        FULL_ARRAY,       //
+        JIT_ARRAY,        //
+        SUB_ARRAY,        //
+        REORDERED_ARRAY,  //
+        EMPTY_ARRAY,      //
+        NULL_ARRAY,       //
+    };
+    // if true will loop over all possible combinations
+    // if false will loop over all individual conditions
+    const bool ALL = true;
+
+    ARG_ERRORS()
+        : inArray(nullptr)
+        , valArray(nullptr)
+        , idxArray(nullptr)
+        , goldArray(nullptr) {
+        idims[0] = idims[1] = idims[2] = idims[3] = 1;
+    }
+
+    virtual void SetUp() {
+        const vector<float> h_in = {1.0f, 2.0f, 3.0f};
+        idims[0]                 = h_in.size();
+        ASSERT_SUCCESS(af_create_array(&inArray, h_in.data(), 1, idims, f32));
+    }
+
+    virtual void TearDown() {
+        ASSERT_SUCCESS(af_release_array(inArray));
+        inArray = nullptr;
+        ASSERT_SUCCESS(af_release_array(valArray));
+        valArray = nullptr;
+        ASSERT_SUCCESS(af_release_array(idxArray));
+        idxArray = nullptr;
+        ASSERT_SUCCESS(af_release_array(goldArray));
+        goldArray = nullptr;
+        // Test on buffer leaks
+        cleanSlate();
+    }
+
+    void tests(af_err (*af_reduce)(af_array *out, const af_array in,
+                                   const int dim),
+               const vector<float> &h_gold) {
+        ostringstream msg;
+        const dim_t odims[4] = {(dim_t)h_gold.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold.data(), 1, odims, f32));
+
+        af_array inArray2    = nullptr;
+        bool dimLoopFinished = false;
+        af_err err;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            for (int dim : {0, -1, 1, 4}) {
+                msg.str(string());
+                msg << "Testing array format input="
+                    << inMeta.getInputArrayTypeName() << " dim=" << dim << "\n";
+                err = AF_ERR_RUNTIME;
+                ASSERT_NO_THROW(err = af_reduce(&valArray, inArray2, dim))
+                    << msg.str();
+
+                if (inType == NULL_ARRAY) {
+                    EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                } else if (dim < 0 || dim > 3) {
+                    EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                } else if (inType == EMPTY_ARRAY) {
+                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                    EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+                } else {
+                    unsigned int indims = 0;
+                    ASSERT_SUCCESS(af_get_numdims(&indims, inArray2))
+                        << msg.str();
+                    if (dim >= indims) {
+                        EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                        EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+                    } else {
+                        // cast necessary for af_all_true & af_any_true
+                        // & af_count
+                        EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                        af_array valArray_f32 = nullptr;
+                        ASSERT_SUCCESS(af_cast(&valArray_f32, valArray, f32))
+                            << msg.str();
+                        EXPECT_ARRAYS_EQ(goldArray, valArray_f32) << msg.str();
+                        ASSERT_SUCCESS(af_release_array(valArray_f32))
+                            << msg.str();
+                        valArray_f32 = nullptr;
+                    }
+                }
+                if (dimLoopFinished) break;
+            }
+            dimLoopFinished = !ALL;
+        }
+        msg.str(string());
+        msg << "Testing array format &output=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(err = af_reduce(nullptr, inArray, 0)) << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+
+    void tests_ragged(af_err (*af_reduce_ragged)(af_array *val, af_array *idx,
+                                                 const af_array in,
+                                                 const af_array ragged_len,
+                                                 const int dim),
+                      const vector<float> &h_gold) {
+        ostringstream msg;
+        const dim_t odims[4] = {(dim_t)h_gold.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold.data(), 1, odims, f32));
+
+        af_array ragged_len = nullptr, ragged_len2 = nullptr,
+                 inArray2     = nullptr;
+        bool rdimLoopFinished = false, dtypeLoopFinished = false,
+             raggedTypeLoopFinished = false, dimLoopFinished = false;
+        af_err err;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            for (int rdim : {0, 1}) {
+                for (af_dtype dtype : {u32, f32}) {
+                    dim_t rdims[4] = {idims[0], idims[1], idims[2], idims[3]};
+                    rdims[rdim]    = 1;
+                    ASSERT_SUCCESS(af_release_array(ragged_len));
+                    ragged_len = nullptr;
+                    ASSERT_SUCCESS(
+                        af_constant(&ragged_len, idims[0], 4, rdims, dtype));
+
+                    for (TestInputArrayType raggedType :
+                         testInputArrayTypeLIST) {
+                        TestInputArrayInfo raggedMeta(raggedType);
+                        genTestInputArray(&ragged_len2, ragged_len,
+                                          &raggedMeta);
+
+                        for (int dim : {0, -1, 1, 4}) {
+                            msg.str(string());
+                            msg << "Testing array format input="
+                                << inMeta.getInputArrayTypeName()
+                                << " ragged.dim=" << rdim
+                                << " ragged.dtype=" << dtype << " ragged="
+                                << raggedMeta.getInputArrayTypeName()
+                                << " dim=" << dim << "\n";
+                            err = AF_ERR_RUNTIME;
+                            ASSERT_NO_THROW(err = af_reduce_ragged(
+                                                &valArray, &idxArray, inArray2,
+                                                ragged_len2, dim))
+                                << msg.str();
+
+                            if (inType == NULL_ARRAY ||
+                                raggedType == NULL_ARRAY) {
+                                EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                            } else if (dim < 0 || dim > 3) {
+                                EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                            } else if (inType == EMPTY_ARRAY) {
+                                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                EXPECT_ARRAYS_EQ(inArray2, valArray)
+                                    << msg.str();
+                            } else {
+                                unsigned int indims = 0;
+                                ASSERT_SUCCESS(
+                                    af_get_numdims(&indims, inArray2));
+                                if (dim >= indims) {
+                                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                    EXPECT_ARRAYS_EQ(inArray2, valArray)
+                                        << msg.str();
+                                } else if (raggedType == EMPTY_ARRAY ||
+                                           dim != rdim) {
+                                    EXPECT_EQ(AF_ERR_SIZE, err) << msg.str();
+                                } else if (dtype == u32) {
+                                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                    EXPECT_ARRAYS_EQ(goldArray, valArray)
+                                        << msg.str();
+                                } else {
+                                    EXPECT_EQ(AF_ERR_TYPE, err) << msg.str();
+                                }
+                            }
+                            if (dimLoopFinished) break;
+                        }
+                        dimLoopFinished = !ALL;
+                        if (raggedTypeLoopFinished) break;
+                    }
+                    raggedTypeLoopFinished = !ALL;
+                    if (dtypeLoopFinished) break;
+                }
+                dtypeLoopFinished = !ALL;
+                if (rdimLoopFinished) break;
+            }
+            rdimLoopFinished = !ALL;
+        }
+        msg.str(string());
+        msg << "Testing array format &output=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(
+            err = af_reduce_ragged(nullptr, &idxArray, inArray, ragged_len, 0))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+        ASSERT_SUCCESS(af_release_array(ragged_len));
+        ragged_len = nullptr;
+        ASSERT_SUCCESS(af_release_array(ragged_len2));
+        ragged_len2 = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_nan)(af_array *out, const af_array in,
+                                       const int dim, const double nan),
+               const vector<float> &h_gold) {
+        ostringstream msg;
+        const dim_t odims[4] = {(dim_t)h_gold.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold.data(), 1, odims, f32));
+
+        af_array inArray2    = nullptr;
+        bool dimLoopFinished = false;
+        af_err err;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            for (int dim : {0, -1, 1, 4}) {
+                msg.str(string());
+                msg << "Testing array format input="
+                    << inMeta.getInputArrayTypeName() << " dim=" << dim << "\n";
+                err = AF_ERR_RUNTIME;
+                ASSERT_NO_THROW(
+                    err = af_reduce_nan(&valArray, inArray2, dim, 0.0))
+                    << msg.str();
+
+                if (inType == NULL_ARRAY) {
+                    EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                } else if (dim < 0 || dim > 3) {
+                    EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                } else if (inType == EMPTY_ARRAY) {
+                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                    EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+                } else {
+                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                    unsigned int indims = 0;
+                    ASSERT_SUCCESS(af_get_numdims(&indims, inArray2))
+                        << msg.str();
+                    if (dim >= indims) {
+                        EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+                    } else {
+                        EXPECT_ARRAYS_EQ(goldArray, valArray) << msg.str();
+                    }
+                }
+                if (dimLoopFinished) break;
+            }
+            dimLoopFinished = !ALL;
+        }
+        msg.str(string());
+        msg << "Testing array format &output=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(err = af_reduce_nan(nullptr, inArray, 0, 0.0))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_by_key)(af_array *keys_out,
+                                          af_array *vals_out,
+                                          const af_array keys,
+                                          const af_array vals, const int dim),
+               const vector<unsigned int> &h_gold_keys,
+               const vector<float> &h_gold_vals) {
+        ostringstream msg;
+        af_array keys_out = nullptr, vals_out = nullptr, keysArray = nullptr,
+                 keysArray2 = nullptr, valsArray2 = nullptr;
+        af_array goldKeys    = nullptr;
+        const dim_t odims[4] = {(dim_t)h_gold_vals.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold_vals.data(), 1, odims, f32));
+        const dim_t okdims[4] = {(dim_t)h_gold_keys.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldKeys, h_gold_keys.data(), 1, okdims, u32));
+
+        bool valsLoopFinished = false, keysLoopFinished = false,
+             dtypeLoopFinished = false;
+        af_err err;
+        for (int dim : {0, -1, 1, 4}) {
+            for (af_dtype dtype : {u32, f32}) {
+                const dim_t kdims[4] = {idims[0], 1, 1, 1};
+                ASSERT_SUCCESS(af_release_array(keysArray));
+                keysArray = nullptr;
+                ASSERT_SUCCESS(af_constant(&keysArray, 0, 1, kdims, dtype));
+
+                for (TestInputArrayType keysType : testInputArrayTypeLIST) {
+                    TestInputArrayInfo keysMeta(keysType);
+                    genTestInputArray(&keysArray2, keysArray, &keysMeta);
+
+                    for (TestInputArrayType valsType : testInputArrayTypeLIST) {
+                        TestInputArrayInfo valsMeta(valsType);
+                        genTestInputArray(&valsArray2, inArray, &valsMeta);
+
+                        msg.str(string());
+                        msg << "Testing array format keys.dtype=" << dtype
+                            << " keys=" << keysMeta.getInputArrayTypeName()
+                            << " vals=" << valsMeta.getInputArrayTypeName()
+                            << " dim=" << dim << "\n";
+                        err = AF_ERR_RUNTIME;
+                        ASSERT_NO_THROW(
+                            err = af_reduce_by_key(&keys_out, &vals_out,
+                                                   keysArray2, valsArray2, dim))
+                            << msg.str();
+
+                        /*
+                        printf("-----\n");
+                        if (keysArray2) af_print_array(keysArray2);
+                        if (valsArray2) af_print_array(valsArray2);
+                        if (keys_out) af_print_array(keys_out);
+                        if (vals_out) af_print_array(vals_out);
+                        if (goldArray) af_print_array(goldArray);
+                        cout << msg.str();
+                        */
+
+                        if (keysType == NULL_ARRAY || valsType == NULL_ARRAY) {
+                            EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                        } else if (dim < 0 || dim > 3) {
+                            EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                        } else {
+                            dim_t valsDims[4] = {0}, keysDims[4] = {0};
+                            ASSERT_SUCCESS(af_get_dims(
+                                valsDims + 0, valsDims + 1, valsDims + 2,
+                                valsDims + 3, valsArray2))
+                                << msg.str();
+                            ASSERT_SUCCESS(af_get_dims(
+                                keysDims + 0, keysDims + 1, keysDims + 2,
+                                keysDims + 3, keysArray2))
+                                << msg.str();
+                            unsigned int kndims = 0;
+                            ASSERT_SUCCESS(af_get_numdims(&kndims, keysArray2))
+                                << msg.str();
+                            if (valsDims[dim] != keysDims[0]) {
+                                EXPECT_EQ(AF_ERR_SIZE, err) << msg.str();
+                            } else if (valsType == EMPTY_ARRAY) {
+                                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                EXPECT_ARRAYS_EQ(valsArray2, vals_out)
+                                    << msg.str();
+                            } else {
+                                unsigned int indims = 0;
+                                ASSERT_SUCCESS(
+                                    af_get_numdims(&indims, valsArray2))
+                                    << msg.str();
+                                if (dim >= indims) {
+                                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                    EXPECT_ARRAYS_EQ(valsArray2, vals_out)
+                                        << msg.str();
+                                    EXPECT_ARRAYS_EQ(goldKeys, keys_out)
+                                        << msg.str();
+                                } else if (dtype == u32 || dtype == s32) {
+                                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                    // cast necessary for
+                                    // af_all_true & af_any_true
+                                    // & af_count
+                                    af_array vals_out_f32 = nullptr;
+                                    if (vals_out != nullptr) {
+                                        ASSERT_SUCCESS(af_cast(&vals_out_f32,
+                                                               vals_out, f32))
+                                            << msg.str();
+                                    }
+                                    EXPECT_ARRAYS_EQ(goldArray, vals_out_f32)
+                                        << msg.str();
+                                    EXPECT_ARRAYS_EQ(goldKeys, keys_out)
+                                        << msg.str();
+                                    ASSERT_SUCCESS(
+                                        af_release_array(vals_out_f32))
+                                        << msg.str();
+                                    vals_out_f32 = nullptr;
+                                } else {
+                                    EXPECT_EQ(AF_ERR_TYPE, err) << msg.str();
+                                }
+                            }
+                        }
+                        if (valsLoopFinished) break;
+                    }
+                    valsLoopFinished = !ALL;
+                    if (keysLoopFinished) break;
+                }
+                keysLoopFinished = !ALL;
+                if (dtypeLoopFinished) break;
+            }
+            dtypeLoopFinished = !ALL;
+        }
+        msg.str(string());
+        msg << "Testing array format &keys_out=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(
+            err = af_reduce_by_key(nullptr, &vals_out, keysArray, inArray, 0))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        msg.str(string());
+        msg << "Testing array format &vals_out=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(
+            err = af_reduce_by_key(&keys_out, nullptr, keysArray, inArray, 0))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        ASSERT_SUCCESS(af_release_array(valsArray2));
+        valsArray2 = nullptr;
+        ASSERT_SUCCESS(af_release_array(keysArray2));
+        keysArray2 = nullptr;
+        ASSERT_SUCCESS(af_release_array(keysArray));
+        keysArray = nullptr;
+        ASSERT_SUCCESS(af_release_array(keys_out));
+        keys_out = nullptr;
+        ASSERT_SUCCESS(af_release_array(vals_out));
+        vals_out = nullptr;
+        ASSERT_SUCCESS(af_release_array(goldKeys));
+        goldKeys = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_by_key_nan)(
+                   af_array *keys_out, af_array *vals_out, const af_array keys,
+                   const af_array vals, const int dim, const double nan),
+               const vector<unsigned int> &h_gold_keys,
+               const vector<float> &h_gold_vals) {
+        ostringstream msg;
+        af_array keys_out = nullptr, vals_out = nullptr, valsArray2 = nullptr,
+                 keysArray = nullptr, keysArray2 = nullptr;
+        af_array goldKeys    = nullptr;
+        const dim_t odims[4] = {(dim_t)h_gold_vals.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold_vals.data(), 1, odims, f32));
+        const dim_t okdims[4] = {(dim_t)h_gold_keys.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldKeys, h_gold_keys.data(), 1, okdims, u32));
+
+        bool dtypeLoopFinished = false, keysLoopFinished = false,
+             dimLoopFinished = false;
+        af_err err;
+        for (TestInputArrayType valsType : testInputArrayTypeLIST) {
+            TestInputArrayInfo valsMeta(valsType);
+            genTestInputArray(&valsArray2, inArray, &valsMeta);
+
+            for (af_dtype dtype : {f32, u32}) {
+                const dim_t kdims[4] = {idims[0], 1, 1, 1};
+                ASSERT_SUCCESS(af_release_array(keysArray));
+                keysArray = nullptr;
+                ASSERT_SUCCESS(af_constant(&keysArray, 0, 1, kdims, dtype));
+
+                for (TestInputArrayType keysType : testInputArrayTypeLIST) {
+                    TestInputArrayInfo keysMeta(keysType);
+                    genTestInputArray(&keysArray2, keysArray, &keysMeta);
+
+                    for (int dim : {0, -1, 1, 4}) {
+                        msg.str(string());
+                        msg << "Testing array format vals="
+                            << valsMeta.getInputArrayTypeName()
+                            << " keys.dtype=" << dtype
+                            << " keys=" << keysMeta.getInputArrayTypeName()
+                            << " dim=" << dim << "\n";
+                        err = AF_ERR_RUNTIME;
+                        ASSERT_NO_THROW(err = af_reduce_by_key_nan(
+                                            &keys_out, &vals_out, keysArray2,
+                                            valsArray2, dim, 0.0))
+                            << msg.str();
+
+                        if (keysType == NULL_ARRAY || valsType == NULL_ARRAY) {
+                            EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                        } else if (dim < 0 || dim > 3) {
+                            EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+                        } else {
+                            dim_t valsDims[4] = {0}, keysDims[4] = {0};
+                            ASSERT_SUCCESS(af_get_dims(
+                                valsDims + 0, valsDims + 1, valsDims + 2,
+                                valsDims + 3, valsArray2));
+                            ASSERT_SUCCESS(af_get_dims(
+                                keysDims + 0, keysDims + 1, keysDims + 2,
+                                keysDims + 3, keysArray2));
+                            unsigned int kndims = 0;
+                            ASSERT_SUCCESS(af_get_numdims(&kndims, keysArray2))
+                                << msg.str();
+                            if (valsDims[dim] != keysDims[0]) {
+                                EXPECT_EQ(AF_ERR_SIZE, err) << msg.str();
+                            } else if (valsType == EMPTY_ARRAY) {
+                                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                EXPECT_ARRAYS_EQ(valsArray2, vals_out)
+                                    << msg.str();
+                            } else {
+                                unsigned int indims = 0;
+                                ASSERT_SUCCESS(
+                                    af_get_numdims(&indims, valsArray2))
+                                    << msg.str();
+                                if (dim >= indims) {
+                                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                    EXPECT_ARRAYS_EQ(valsArray2, vals_out)
+                                        << msg.str();
+                                    EXPECT_ARRAYS_EQ(goldKeys, keys_out)
+                                        << msg.str();
+                                } else if (dtype == u32 || dtype == s32) {
+                                    EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                                    EXPECT_ARRAYS_EQ(goldArray, vals_out)
+                                        << msg.str();
+                                    EXPECT_ARRAYS_EQ(goldKeys, keys_out)
+                                        << msg.str();
+                                } else {
+                                    EXPECT_EQ(AF_ERR_TYPE, err) << msg.str();
+                                }
+                            }
+                        }
+                        if (dimLoopFinished) break;
+                    }
+                    dimLoopFinished = !ALL;
+                    if (keysLoopFinished) break;
+                }
+                keysLoopFinished = !ALL;
+                if (dtypeLoopFinished) break;
+            }
+            dtypeLoopFinished = !ALL;
+        }
+        msg.str(string());
+        msg << "Testing array format &keys_out=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(err = af_reduce_by_key_nan(nullptr, &vals_out,
+                                                   keysArray, inArray, 0, 0.0))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        msg.str(string());
+        msg << "Testing array format &vals_out=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(err = af_reduce_by_key_nan(&keys_out, nullptr,
+                                                   keysArray, inArray, 0, 0.0))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        ASSERT_SUCCESS(af_release_array(keysArray2));
+        keysArray2 = nullptr;
+        ASSERT_SUCCESS(af_release_array(keysArray));
+        keysArray = nullptr;
+        ASSERT_SUCCESS(af_release_array(valsArray2));
+        valsArray2 = nullptr;
+        ASSERT_SUCCESS(af_release_array(keys_out));
+        keys_out = nullptr;
+        ASSERT_SUCCESS(af_release_array(vals_out));
+        vals_out = nullptr;
+        ASSERT_SUCCESS(af_release_array(goldKeys));
+        goldKeys = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_all)(double *real, double *imag,
+                                       const af_array in),
+               const double real, const double imag) {
+        ostringstream msg;
+        af_array inArray2 = nullptr;
+
+        af_err err;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            double real_ = 0., imag_ = 0.;
+            msg.str(string());
+            msg << "Testing array format in=" << inMeta.getInputArrayTypeName()
+                << "\n";
+            err = AF_ERR_RUNTIME;
+            ASSERT_NO_THROW(err = af_reduce_all(&real_, &imag_, inArray2))
+                << msg.str();
+
+            if (inType == NULL_ARRAY) {
+                EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+            } else if (inType == EMPTY_ARRAY) {
+                EXPECT_EQ(AF_ERR_SIZE, err) << msg.str();
+            } else {
+                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                EXPECT_EQ(real, real_) << msg.str();
+                EXPECT_EQ(imag, imag_) << msg.str();
+            }
+        }
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_nan_all)(double *real, double *imag,
+                                           const af_array in, const double nan),
+               const double real, const double imag) {
+        ostringstream msg;
+        af_array inArray2 = nullptr;
+        af_err err;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            double real_ = 0., imag_ = 0.;
+            msg.str(string());
+            msg << "Testing array format in=" << inMeta.getInputArrayTypeName()
+                << "\n";
+            err = AF_ERR_RUNTIME;
+            ASSERT_NO_THROW(
+                err = af_reduce_nan_all(&real_, &imag_, inArray2, 0.0))
+                << msg.str();
+
+            if (inType == NULL_ARRAY) {
+                EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+            } else if (inType == EMPTY_ARRAY) {
+                EXPECT_EQ(AF_ERR_SIZE, err) << msg.str();
+            } else {
+                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                EXPECT_EQ(real, real_) << msg.str();
+                EXPECT_EQ(imag, imag_) << msg.str();
+            }
+        }
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_all_array)(af_array *out, const af_array in),
+               const vector<float> &h_gold) {
+        ostringstream msg;
+        af_array inArray2    = nullptr;
+        const dim_t odims[4] = {(dim_t)h_gold.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold.data(), 1, odims, f32));
+
+        af_err err;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            msg.str(string());
+            msg << "Testing array format in=" << inMeta.getInputArrayTypeName()
+                << "\n";
+            err = AF_ERR_RUNTIME;
+            ASSERT_NO_THROW(err = af_reduce_all_array(&valArray, inArray2))
+                << msg.str();
+
+            if (inType == NULL_ARRAY) {
+                EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+            } else if (inType == EMPTY_ARRAY) {
+                EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+            } else {
+                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                // cast necessary for af_all_true & af_any_true &
+                // af_count
+                af_array valArray_f32 = nullptr;
+                ASSERT_SUCCESS(af_cast(&valArray_f32, valArray, f32))
+                    << msg.str();
+                EXPECT_ARRAYS_EQ(goldArray, valArray_f32) << msg.str();
+                ASSERT_SUCCESS(af_release_array(valArray_f32)) << msg.str();
+                valArray_f32 = nullptr;
+            }
+        }
+        msg.str(string());
+        msg << "Testing array format &output=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(err = af_reduce_all_array(nullptr, inArray2))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+
+    void tests(af_err (*af_reduce_nan_all_array)(af_array *out,
+                                                 const af_array in,
+                                                 const double nan),
+               const vector<float> &h_gold) {
+        ostringstream msg;
+        af_array inArray2    = nullptr;
+        const dim_t odims[4] = {(dim_t)h_gold.size(), 1, 1, 1};
+        ASSERT_SUCCESS(
+            af_create_array(&goldArray, h_gold.data(), 1, odims, f32));
+
+        af_err err;
+        for (TestInputArrayType inType : testInputArrayTypeLIST) {
+            TestInputArrayInfo inMeta(inType);
+            genTestInputArray(&inArray2, inArray, &inMeta);
+
+            msg.str(string());
+            msg << "Testing array format in=" << inMeta.getInputArrayTypeName()
+                << "\n";
+            err = AF_ERR_RUNTIME;
+            ASSERT_NO_THROW(
+                err = af_reduce_nan_all_array(&valArray, inArray2, 0.0))
+                << msg.str();
+
+            if (inType == NULL_ARRAY) {
+                EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+            } else if (inType == EMPTY_ARRAY) {
+                EXPECT_ARRAYS_EQ(inArray2, valArray) << msg.str();
+            } else {
+                EXPECT_EQ(AF_SUCCESS, err) << msg.str();
+                EXPECT_ARRAYS_EQ(goldArray, valArray) << msg.str();
+            }
+        }
+        msg.str(string());
+        msg << "Testing array format &output=nullptr\n";
+        err = AF_ERR_RUNTIME;
+        ASSERT_NO_THROW(err = af_reduce_nan_all_array(nullptr, inArray2, 0.0))
+            << msg.str();
+        EXPECT_EQ(AF_ERR_ARG, err) << msg.str();
+
+        ASSERT_SUCCESS(af_release_array(inArray2));
+        inArray2 = nullptr;
+    }
+};
+
+TEST_F(ARG_ERRORS, af_min) { tests(af_min, {1.0}); }
+TEST_F(ARG_ERRORS, af_min_all) { tests(af_min_all, 1.0, 0.0); }
+TEST_F(ARG_ERRORS, af_min_all_array) { tests(af_min_all_array, {1.0}); }
+TEST_F(ARG_ERRORS, af_min_by_key) { tests(af_min_by_key, {0}, {1.0}); }
+
+TEST_F(ARG_ERRORS, af_max) { tests(af_max, {3.0}); }
+TEST_F(ARG_ERRORS, af_max_all) { tests(af_max_all, 3.0, 0.0); }
+TEST_F(ARG_ERRORS, af_max_all_array) { tests(af_max_all_array, {3.0}); }
+TEST_F(ARG_ERRORS, af_max_by_key) { tests(af_max_by_key, {0}, {3.0}); }
+TEST_F(ARG_ERRORS, af_max_ragged) { tests_ragged(af_max_ragged, {3.0}); }
+
+TEST_F(ARG_ERRORS, af_sum) { tests(af_sum, {6.0}); }
+TEST_F(ARG_ERRORS, af_sum_nan) { tests(af_sum_nan, {6.0}); }
+TEST_F(ARG_ERRORS, af_sum_nan_all) { tests(af_sum_nan_all, 6.0, 0.0); }
+TEST_F(ARG_ERRORS, af_sum_nan_all_array) { tests(af_sum_nan_all_array, {6.0}); }
+TEST_F(ARG_ERRORS, af_sum_all) { tests(af_sum_all, 6.0, .0); }
+TEST_F(ARG_ERRORS, af_sum_all_array) { tests(af_sum_all_array, {6.0}); }
+TEST_F(ARG_ERRORS, af_sum_by_key) { tests(af_sum_by_key, {0}, {6.0}); }
+TEST_F(ARG_ERRORS, af_sum_by_key_nan) { tests(af_sum_by_key_nan, {0}, {6.0}); }
+
+TEST_F(ARG_ERRORS, af_product) { tests(af_product, {6.0}); }
+TEST_F(ARG_ERRORS, af_product_nan) { tests(af_product_nan, {6.0}); }
+TEST_F(ARG_ERRORS, af_product_nan_all_array) {
+    tests(af_product_nan_all_array, {6.0});
+}
+TEST_F(ARG_ERRORS, af_product_all) { tests(af_product_all, 6.0, 0.0); }
+TEST_F(ARG_ERRORS, af_product_nan_all) { tests(af_product_nan_all, 6.0, 0.0); }
+TEST_F(ARG_ERRORS, af_product_all_array) { tests(af_product_all_array, {6.0}); }
+TEST_F(ARG_ERRORS, af_product_by_key) { tests(af_product_by_key, {0}, {6.0}); }
+TEST_F(ARG_ERRORS, af_product_by_key_nan) {
+    tests(af_product_by_key_nan, {0}, {6.0});
+}
+
+TEST_F(ARG_ERRORS, af_all_true) { tests(af_all_true, {1.0}); }
+TEST_F(ARG_ERRORS, af_all_true_all) { tests(af_all_true_all, 1.0, 0.0); }
+TEST_F(ARG_ERRORS, af_all_true_all_array) {
+    tests(af_all_true_all_array, {1.0});
+}
+TEST_F(ARG_ERRORS, af_all_true_by_key) {
+    tests(af_all_true_by_key, {0}, {1.0});
+}
+
+TEST_F(ARG_ERRORS, af_any_true) { tests(af_any_true, {1.0}); }
+TEST_F(ARG_ERRORS, af_any_true_all) { tests(af_any_true_all, 1.0, 0.0); }
+TEST_F(ARG_ERRORS, af_any_true_all_array) {
+    tests(af_any_true_all_array, {1.0});
+}
+TEST_F(ARG_ERRORS, af_any_true_by_key) {
+    tests(af_any_true_by_key, {0}, {1.0});
+}
+
+TEST_F(ARG_ERRORS, af_count) { tests(af_count, {3.0}); }
+TEST_F(ARG_ERRORS, af_count_all) { tests(af_count_all, 3.0, 0.0); }
+TEST_F(ARG_ERRORS, af_count_all_array) { tests(af_count_all_array, {3.0}); }
+TEST_F(ARG_ERRORS, af_count_by_key) { tests(af_count_by_key, {0}, {3.0}); }
+
+/////////////////////////////////// CPP
+/////////////////////////////////////
 //
 typedef af::array (*ReductionOp)(const af::array &, const int);
 
@@ -423,7 +1202,15 @@ class ReduceByKeyP : public ::testing::TestWithParam<reduce_by_key_params *> {
             ptrToArray(params->oSize, params->oVals_, params->oType_);
     }
 
-    void TearDown() { delete GetParam(); }
+    void TearDown() {
+        delete GetParam();
+        keys            = array();
+        vals            = array();
+        keyResGold      = array();
+        valsReducedGold = array();
+        // Test on buffer leaks
+        cleanSlate();
+    }
 };
 
 template<typename T>
@@ -598,6 +1385,15 @@ TEST_P(ReduceByKeyP, SumDim2) {
     ASSERT_ARRAYS_NEAR(valsReducedGold, valsReduced, 1e-5);
 }
 
+class ReduceByKey : public ::testing::Test {
+   public:
+    virtual void SetUp() {}
+    virtual void TearDown() {
+        // Test on buffer leaks
+        cleanSlate();
+    }
+};
+
 TEST(ReduceByKey, MultiBlockReduceSingleval) {
     array keys = constant(0, 1024 * 1024, s32);
     array vals = constant(1, 1024 * 1024, f32);
@@ -680,9 +1476,13 @@ void reduce_by_key_test(std::string test_fn) {
         }
 
         ASSERT_EQ(AF_SUCCESS, af_release_array(outKeys));
+        outKeys = nullptr;
         ASSERT_EQ(AF_SUCCESS, af_release_array(outVals));
+        outVals = nullptr;
         ASSERT_EQ(AF_SUCCESS, af_release_array(inKeys));
+        inKeys = nullptr;
         ASSERT_EQ(AF_SUCCESS, af_release_array(inVals));
+        inVals = nullptr;
     }
 }
 TEST(ReduceByKey, MultiBlockReduceContig10) {
@@ -1334,7 +2134,14 @@ struct reduce_params {
         , reduce_dim(red_dim) {}
 };
 
-class ReduceHalf : public ::testing::TestWithParam<reduce_params> {};
+class ReduceHalf : public ::testing::TestWithParam<reduce_params> {
+   public:
+    virtual void SetUp() {}
+    virtual void TearDown() {
+        // Test on buffer leaks
+        cleanSlate();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(
     SumFirstNonZeroDim, ReduceHalf,
@@ -1988,7 +2795,15 @@ class RaggedReduceMaxRangeP : public ::testing::TestWithParam<ragged_params *> {
         idxsReducedGold = af::range(rdim, (dim > 0) ? 0 : 1, params->lType_);
     }
 
-    void TearDown() { delete GetParam(); }
+    void TearDown() {
+        delete GetParam();
+        vals            = array();
+        ragged_lens     = array();
+        valsReducedGold = array();
+        idxsReducedGold = array();
+        // Test on buffer leaks
+        cleanSlate();
+    }
 };
 
 template<typename Tl, typename Tv, typename To>
@@ -2347,17 +3162,24 @@ TEST(Reduce, nanval_issue_3255) {
         ASSERT_SUCCESS(
             af_product_by_key_nan(&okeys, &ovals, ikeys, ivals, 0, 1.0));
         af::array ovals_cpp(ovals);
+        ovals = nullptr;
         ASSERT_FALSE(af::anyTrue<bool>(af::isNaN(ovals_cpp)));
         ASSERT_SUCCESS(af_release_array(okeys));
+        okeys = nullptr;
 
         ASSERT_SUCCESS(af_sum_by_key_nan(&okeys, &ovals, ikeys, ivals, 0, 1.0));
         ovals_cpp = af::array(ovals);
+        ovals     = nullptr;
 
         ASSERT_FALSE(af::anyTrue<bool>(af::isNaN(ovals_cpp)));
+
         ASSERT_SUCCESS(af_release_array(ivals));
+        ivals = nullptr;
         ASSERT_SUCCESS(af_release_array(okeys));
+        okeys = nullptr;
     }
     ASSERT_SUCCESS(af_release_array(ikeys));
+    ikeys = nullptr;
 }
 
 TEST(Reduce, SNIPPET_algorithm_func_sum) {

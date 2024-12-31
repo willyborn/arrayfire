@@ -47,8 +47,12 @@ static inline void reduce_by_key(af_array *keys_out, af_array *vals_out,
                                  const af_array keys, const af_array vals,
                                  const int dim, bool change_nan,
                                  double nanval) {
-    Array<Tk> oKeyArray = createEmptyArray<Tk>(dim4());
-    Array<To> oValArray = createEmptyArray<To>(dim4());
+    af_release_array(*keys_out);
+    *keys_out = nullptr;
+    af_release_array(*vals_out);
+    *vals_out           = nullptr;
+    Array<Tk> oKeyArray = createEmptyArray<Tk>(dim4());  // Only placeholders
+    Array<To> oValArray = createEmptyArray<To>(dim4());  // Only placeholders
 
     reduce_by_key<op, Ti, Tk, To>(oKeyArray, oValArray, getArray<Tk>(keys),
                                   getArray<Ti>(vals), dim, change_nan, nanval);
@@ -81,8 +85,12 @@ static inline void reduce_key(af_array *keys_out, af_array *vals_out,
 template<af_op_t op, typename To>
 static af_err reduce_type(af_array *out, const af_array in, const int dim) {
     try {
-        ARG_ASSERT(2, dim >= 0);
-        ARG_ASSERT(2, dim < 4);
+        ARG_ASSERT(0, out != nullptr);
+        ARG_ASSERT(1, in != nullptr);
+        ARG_ASSERT(2, dim >= 0 && dim < 4);
+
+        af_release_array(*out);
+        *out = nullptr;
 
         const ArrayInfo &in_info = getInfo(in);
 
@@ -110,8 +118,7 @@ static af_err reduce_type(af_array *out, const af_array in, const int dim) {
             case f16: res = reduce<op, half, To>(in, dim); break;
             default: TYPE_ERROR(1, type);
         }
-
-        std::swap(*out, res);
+        *out = res;
     }
     CATCHALL;
 
@@ -123,15 +130,28 @@ static af_err reduce_by_key_type(af_array *keys_out, af_array *vals_out,
                                  const af_array keys, const af_array vals,
                                  const int dim) {
     try {
-        ARG_ASSERT(4, dim >= 0);
-        ARG_ASSERT(4, dim < 4);
+        ARG_ASSERT(0, keys_out != nullptr);
+        ARG_ASSERT(1, vals_out != nullptr);
+        ARG_ASSERT(2, keys != nullptr);
+        ARG_ASSERT(3, vals != nullptr);
+        ARG_ASSERT(4, dim >= 0 && dim < 4);
 
-        const ArrayInfo &kinfo   = getInfo(keys);
-        const ArrayInfo &in_info = getInfo(vals);
-        af_dtype type            = in_info.getType();
+        const ArrayInfo &keys_info = getInfo(keys);
+        const ArrayInfo &vals_info = getInfo(vals);
+        af_dtype type              = vals_info.getType();
+        DIM_ASSERT(2, vals_info.dims()[dim] == keys_info.dims()[0]);
 
-        ARG_ASSERT(2, kinfo.isVector());
-        ARG_ASSERT(2, in_info.dims()[dim] == kinfo.elements());
+        af_release_array(*keys_out);
+        *keys_out = nullptr;
+        af_release_array(*vals_out);
+        *vals_out = nullptr;
+
+        if (dim >= static_cast<int>(vals_info.ndims())) {
+            *vals_out = retain(vals);
+            *keys_out = retain(keys);
+            return AF_SUCCESS;
+        }
+        DIM_ASSERT(2, keys_info.isVector());
 
         switch (type) {
             case f32:
@@ -185,13 +205,18 @@ static af_err reduce_by_key_type(af_array *keys_out, af_array *vals_out,
 template<af_op_t op>
 static af_err reduce_common(af_array *out, const af_array in, const int dim) {
     try {
-        ARG_ASSERT(2, dim >= 0);
-        ARG_ASSERT(2, dim < 4);
+        ARG_ASSERT(0, out != nullptr);
+        ARG_ASSERT(1, in != nullptr);
+        ARG_ASSERT(2, dim >= 0 && dim < 4);
+
+        af_release_array(*out);
+        *out = nullptr;
 
         const ArrayInfo &in_info = getInfo(in);
 
         if (dim >= static_cast<int>(in_info.ndims())) {
-            return af_retain_array(out, in);
+            *out = retain(in);
+            return AF_SUCCESS;
         }
 
         af_dtype type = in_info.getType();
@@ -213,8 +238,7 @@ static af_err reduce_common(af_array *out, const af_array in, const int dim) {
             case f16: res = reduce<op, half, half>(in, dim); break;
             default: TYPE_ERROR(1, type);
         }
-
-        std::swap(*out, res);
+        *out = res;
     }
     CATCHALL;
 
@@ -226,15 +250,28 @@ static af_err reduce_by_key_common(af_array *keys_out, af_array *vals_out,
                                    const af_array keys, const af_array vals,
                                    const int dim) {
     try {
-        ARG_ASSERT(4, dim >= 0);
-        ARG_ASSERT(4, dim < 4);
+        ARG_ASSERT(0, keys_out != nullptr);
+        ARG_ASSERT(1, vals_out != nullptr);
+        ARG_ASSERT(2, keys != nullptr);
+        ARG_ASSERT(3, vals != nullptr);
+        ARG_ASSERT(4, dim >= 0 && dim < 4);
 
-        const ArrayInfo &kinfo   = getInfo(keys);
-        const ArrayInfo &in_info = getInfo(vals);
-        af_dtype type            = in_info.getType();
+        const ArrayInfo &keys_info = getInfo(keys);
+        const ArrayInfo &vals_info = getInfo(vals);
+        af_dtype type              = vals_info.getType();
+        DIM_ASSERT(2, vals_info.dims()[dim] == keys_info.dims()[0]);
 
-        ARG_ASSERT(2, kinfo.isVector());
-        ARG_ASSERT(2, in_info.dims()[dim] == kinfo.dims()[0]);
+        af_release_array(*keys_out);
+        *keys_out = nullptr;
+        af_release_array(*vals_out);
+        *vals_out = nullptr;
+
+        if (dim >= static_cast<int>(vals_info.ndims())) {
+            *vals_out = retain(vals);
+            *keys_out = retain(keys);
+            return AF_SUCCESS;
+        }
+        DIM_ASSERT(2, keys_info.isVector());
 
         switch (type) {
             case f32:
@@ -295,8 +332,12 @@ template<af_op_t op>
 static af_err reduce_promote(af_array *out, const af_array in, const int dim,
                              bool change_nan = false, double nanval = 0.0) {
     try {
-        ARG_ASSERT(2, dim >= 0);
-        ARG_ASSERT(2, dim < 4);
+        ARG_ASSERT(0, out != nullptr);
+        ARG_ASSERT(1, in != nullptr);
+        ARG_ASSERT(2, dim >= 0 && dim < 4);
+
+        af_release_array(*out);
+        *out = nullptr;
 
         const ArrayInfo &in_info = getInfo(in);
 
@@ -356,7 +397,7 @@ static af_err reduce_promote(af_array *out, const af_array in, const int dim,
                 break;
             default: TYPE_ERROR(1, type);
         }
-        std::swap(*out, res);
+        *out = res;
     }
     CATCHALL;
 
@@ -369,15 +410,28 @@ static af_err reduce_promote_by_key(af_array *keys_out, af_array *vals_out,
                                     const int dim, bool change_nan = false,
                                     double nanval = 0.0) {
     try {
-        ARG_ASSERT(4, dim >= 0);
-        ARG_ASSERT(4, dim < 4);
+        ARG_ASSERT(0, keys_out != nullptr);
+        ARG_ASSERT(1, vals_out != nullptr);
+        ARG_ASSERT(2, keys != nullptr);
+        ARG_ASSERT(3, vals != nullptr);
+        ARG_ASSERT(4, dim >= 0 && dim < 4);
 
         const ArrayInfo &kinfo   = getInfo(keys);
         const ArrayInfo &in_info = getInfo(vals);
         af_dtype type            = in_info.getType();
+        DIM_ASSERT(2, in_info.dims()[dim] == kinfo.dims()[0]);
 
-        ARG_ASSERT(2, kinfo.isVector());
-        ARG_ASSERT(2, in_info.dims()[dim] == kinfo.dims()[0]);
+        af_release_array(*keys_out);
+        *keys_out = nullptr;
+        af_release_array(*vals_out);
+        *vals_out = nullptr;
+
+        if (dim >= static_cast<int>(in_info.ndims())) {
+            *vals_out = retain(vals);
+            *keys_out = retain(keys);
+            return AF_SUCCESS;
+        }
+        DIM_ASSERT(2, kinfo.isVector());
 
         switch (type) {
             case f32:
@@ -553,12 +607,15 @@ static inline Tret reduce_all(const af_array in, bool change_nan = false,
 template<af_op_t op, typename To>
 static af_err reduce_all_type(double *real, double *imag, const af_array in) {
     try {
+        ARG_ASSERT(0, real != nullptr);
+        ARG_ASSERT(2, in != nullptr);
+
         const ArrayInfo &in_info = getInfo(in);
         af_dtype type            = in_info.getType();
+        DIM_ASSERT(2, in_info.ndims() > 0);
 
-        ARG_ASSERT(0, real != nullptr);
         *real = 0;
-        if (imag) { *imag = 0; }
+        if (imag != nullptr) { *imag = 0; }
 
         switch (type) {
             // clang-format off
@@ -587,8 +644,18 @@ static af_err reduce_all_type(double *real, double *imag, const af_array in) {
 template<af_op_t op, typename To>
 static af_err reduce_all_type_array(af_array *out, const af_array in) {
     try {
+        ARG_ASSERT(0, out != nullptr);
+        ARG_ASSERT(1, in != nullptr);
+
+        af_release_array(*out);
+        *out = nullptr;
+
         const ArrayInfo &in_info = getInfo(in);
         af_dtype type            = in_info.getType();
+        if (in_info.ndims() == 0) {
+            *out = retain(in);
+            return AF_SUCCESS;
+        }
 
         af_array res;
         switch (type) {
@@ -609,7 +676,7 @@ static af_err reduce_all_type_array(af_array *out, const af_array in) {
             // clang-format on
             default: TYPE_ERROR(1, type);
         }
-        std::swap(*out, res);
+        *out = res;
     }
     CATCHALL;
 
@@ -620,11 +687,13 @@ template<af_op_t op>
 static af_err reduce_all_common(double *real_val, double *imag_val,
                                 const af_array in) {
     try {
+        ARG_ASSERT(0, real_val != nullptr);
+        ARG_ASSERT(2, in != nullptr);
+
         const ArrayInfo &in_info = getInfo(in);
         af_dtype type            = in_info.getType();
+        DIM_ASSERT(2, in_info.ndims() > 0);
 
-        ARG_ASSERT(2, in_info.ndims() > 0);
-        ARG_ASSERT(0, real_val != nullptr);
         *real_val = 0;
         if (imag_val != nullptr) { *imag_val = 0; }
 
@@ -670,10 +739,20 @@ static af_err reduce_all_common(double *real_val, double *imag_val,
 template<af_op_t op>
 static af_err reduce_all_common_array(af_array *out, const af_array in) {
     try {
+        ARG_ASSERT(0, out != nullptr);
+        ARG_ASSERT(1, in != nullptr);
+
         const ArrayInfo &in_info = getInfo(in);
         af_dtype type            = in_info.getType();
 
-        ARG_ASSERT(2, in_info.ndims() > 0);
+        af_release_array(*out);
+        *out = nullptr;
+
+        if (in_info.ndims() == 0) {
+            *out = retain(in);
+            return AF_SUCCESS;
+        }
+
         af_array res;
 
         switch (type) {
@@ -694,7 +773,7 @@ static af_err reduce_all_common_array(af_array *out, const af_array in) {
             case c64: res = reduce_all_array<op, cdouble, cdouble>(in); break;
             default: TYPE_ERROR(1, type);
         }
-        std::swap(*out, res);
+        *out = res;
     }
     CATCHALL;
 
@@ -706,10 +785,13 @@ static af_err reduce_all_promote(double *real_val, double *imag_val,
                                  const af_array in, bool change_nan = false,
                                  double nanval = 0) {
     try {
+        ARG_ASSERT(0, real_val != nullptr);
+        ARG_ASSERT(2, in != nullptr);
+
         const ArrayInfo &in_info = getInfo(in);
         af_dtype type            = in_info.getType();
+        DIM_ASSERT(2, in_info.ndims() > 0);
 
-        ARG_ASSERT(0, real_val != nullptr);
         *real_val = 0;
         if (imag_val) { *imag_val = 0; }
 
@@ -767,9 +849,20 @@ static af_err reduce_all_promote_array(af_array *out, const af_array in,
                                        bool change_nan = false,
                                        double nanval   = 0.0) {
     try {
-        const ArrayInfo &in_info = getInfo(in);
+        ARG_ASSERT(0, out != nullptr);
+        ARG_ASSERT(1, in != nullptr);
 
-        af_dtype type = in_info.getType();
+        af_release_array(*out);
+        *out = nullptr;
+
+        const ArrayInfo &in_info = getInfo(in);
+        af_dtype type            = in_info.getType();
+
+        if (in_info.ndims() == 0) {
+            *out = retain(in);
+            return AF_SUCCESS;
+        }
+
         af_array res;
 
         switch (type) {
@@ -826,7 +919,7 @@ static af_err reduce_all_promote_array(af_array *out, const af_array in,
                 break;
             default: TYPE_ERROR(1, type);
         }
-        std::swap(*out, res);
+        *out = res;
     }
     CATCHALL;
 
@@ -924,11 +1017,17 @@ template<af_op_t op>
 static af_err ireduce_common(af_array *val, af_array *idx, const af_array in,
                              const int dim) {
     try {
-        ARG_ASSERT(3, dim >= 0);
-        ARG_ASSERT(3, dim < 4);
+        ARG_ASSERT(0, val != nullptr);
+        ARG_ASSERT(1, idx != nullptr);
+        ARG_ASSERT(2, in != nullptr);
+        ARG_ASSERT(3, dim >= 0 && dim < 4);
 
         const ArrayInfo &in_info = getInfo(in);
-        ARG_ASSERT(2, in_info.ndims() > 0);
+
+        af_release_array(*val);
+        *val = nullptr;
+        af_release_array(*idx);
+        *idx = nullptr;
 
         if (dim >= static_cast<int>(in_info.ndims())) {
             *val = retain(in);
@@ -955,9 +1054,8 @@ static af_err ireduce_common(af_array *val, af_array *idx, const af_array in,
             case f16: ireduce<op, half>(&res, &loc, in, dim); break;
             default: TYPE_ERROR(1, type);
         }
-
-        std::swap(*val, res);
-        std::swap(*idx, loc);
+        *val = res;
+        *idx = loc;
     }
     CATCHALL;
 
@@ -976,23 +1074,29 @@ template<af_op_t op>
 static af_err rreduce_common(af_array *val, af_array *idx, const af_array in,
                              const af_array ragged_len, const int dim) {
     try {
-        ARG_ASSERT(3, dim >= 0);
-        ARG_ASSERT(3, dim < 4);
+        ARG_ASSERT(0, val != nullptr);
+        ARG_ASSERT(1, idx != nullptr);
+        ARG_ASSERT(2, in != nullptr);
+        ARG_ASSERT(3, ragged_len != nullptr);
+        ARG_ASSERT(4, dim >= 0 && dim < 4);
+
+        af_release_array(*val);
+        *val = nullptr;
+        af_release_array(*idx);
+        *idx = nullptr;
 
         const ArrayInfo &in_info = getInfo(in);
-        ARG_ASSERT(2, in_info.ndims() > 0);
-
         if (dim >= static_cast<int>(in_info.ndims())) {
             *val = retain(in);
             *idx = createHandleFromValue<uint>(in_info.dims(), 0);
             return AF_SUCCESS;
         }
 
-        // Make sure ragged_len.dims == in.dims(), except on reduced dim
+        // Make sure ragged_len.dims() == in.dims(), except on reduced dim
         const ArrayInfo &ragged_info = getInfo(ragged_len);
         dim4 test_dim                = in_info.dims();
         test_dim[dim]                = 1;
-        ARG_ASSERT(4, test_dim == ragged_info.dims());
+        DIM_ASSERT(4, test_dim == ragged_info.dims());
 
         af_dtype keytype = ragged_info.getType();
         if (keytype != u32) { TYPE_ERROR(4, keytype); }
@@ -1030,9 +1134,8 @@ static af_err rreduce_common(af_array *val, af_array *idx, const af_array in,
             case f16: rreduce<op, half>(&res, &loc, in, dim, ragged_len); break;
             default: TYPE_ERROR(2, type);
         }
-
-        std::swap(*val, res);
-        std::swap(*idx, loc);
+        *val = res;
+        *idx = loc;
     }
     CATCHALL;
 
@@ -1053,11 +1156,14 @@ template<af_op_t op>
 static af_err ireduce_all_common(double *real_val, double *imag_val,
                                  unsigned *loc, const af_array in) {
     try {
+        ARG_ASSERT(0, real_val != nullptr);
+        ARG_ASSERT(2, loc != nullptr);
+        ARG_ASSERT(3, in != nullptr);
+
         const ArrayInfo &in_info = getInfo(in);
         af_dtype type            = in_info.getType();
+        DIM_ASSERT(3, in_info.ndims() > 0);
 
-        ARG_ASSERT(3, in_info.ndims() > 0);
-        ARG_ASSERT(0, real_val != nullptr);
         *real_val = 0;
         if (imag_val) { *imag_val = 0; }
 

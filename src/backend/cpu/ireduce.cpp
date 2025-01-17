@@ -72,12 +72,12 @@ void rreduce(Array<T> &out, Array<uint> &loc, const Array<T> &in, const int dim,
 template<af_op_t op, typename T>
 T ireduce_all(unsigned *loc, const Array<T> &in) {
     // Calling point for Array<T> backend
-    getQueue().sync();
 
     af::dim4 dims    = in.dims();
     af::dim4 strides = in.strides();
     const T *inPtr   = in.get();
 
+    getQueue().sync();
     kernel::MinMaxOp<op, T> Op(inPtr[0], 0);
 
     for (dim_t l = 0; l < dims[3]; l++) {

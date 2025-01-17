@@ -27,6 +27,14 @@ namespace cuda {
 template<af_op_t op, typename T>
 void ireduce(Array<T> &out, Array<uint> &loc, const Array<T> &in,
              const int dim) {
+    // Calling point for Array<T> backend
+    ARG_ASSERT(3, dim >= 0 && dim < 4);
+    DIM_ASSERT(2, in.ndims() > 0);
+    dim4 odims = in.dims();
+    odims[dim] = 1;
+    DIM_ASSERT(0, out.dims() == odims);
+    DIM_ASSERT(1, loc.dims() == odims);
+
     Array<uint> rlen = createEmptyArray<uint>(af::dim4(0));
     kernel::ireduce<T, op>(out, loc.get(), in, dim, rlen);
 }
@@ -34,11 +42,24 @@ void ireduce(Array<T> &out, Array<uint> &loc, const Array<T> &in,
 template<af_op_t op, typename T>
 void rreduce(Array<T> &out, Array<uint> &loc, const Array<T> &in, const int dim,
              const Array<uint> &rlen) {
+    // Calling point for Array<T> backend
+    ARG_ASSERT(3, dim >= 0 && dim < 4);
+    DIM_ASSERT(2, in.ndims() > 0);
+    dim4 odims = in.dims();
+    odims[dim] = 1;
+    DIM_ASSERT(4, rlen.ndims() == 0 || rlen.dims() == odims);
+    TYPE_ASSERT(rlen.getType() == u32);
+    DIM_ASSERT(0, out.dims() == odims);
+    DIM_ASSERT(1, loc.dims() == odims);
+
     kernel::ireduce<T, op>(out, loc.get(), in, dim, rlen);
 }
 
 template<af_op_t op, typename T>
 T ireduce_all(unsigned *loc, const Array<T> &in) {
+    // Calling point for Aray<T> backend
+    ARG_ASSERT(0, loc != nullptr);
+
     return kernel::ireduce_all<T, op>(loc, in);
 }
 

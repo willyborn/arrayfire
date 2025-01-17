@@ -31,8 +31,14 @@ using ireduce_dim_func =
 template<af_op_t op, typename T>
 void ireduce(Array<T> &out, Array<uint> &loc, const Array<T> &in,
              const int dim) {
-    dim4 odims       = in.dims();
-    odims[dim]       = 1;
+    // Calling point for Array<T> backend
+    ARG_ASSERT(3, dim >= 0 && dim < 4);
+    DIM_ASSERT(2, in.ndims() > 0);
+    dim4 odims = in.dims();
+    odims[dim] = 1;
+    DIM_ASSERT(0, out.dims() == odims);
+    DIM_ASSERT(0, loc.dims() == odims);
+
     Array<uint> rlen = createEmptyArray<uint>(af::dim4(0));
     static const ireduce_dim_func<op, T> ireduce_funcs[] = {
         kernel::ireduce_dim<op, T, 1>(), kernel::ireduce_dim<op, T, 2>(),
@@ -45,8 +51,15 @@ void ireduce(Array<T> &out, Array<uint> &loc, const Array<T> &in,
 template<af_op_t op, typename T>
 void rreduce(Array<T> &out, Array<uint> &loc, const Array<T> &in, const int dim,
              const Array<uint> &rlen) {
+    // Calling point for Array<T> backend
+    ARG_ASSERT(3, dim >= 0 && dim < 4);
+    DIM_ASSERT(2, in.ndims() > 0);
     dim4 odims = in.dims();
     odims[dim] = 1;
+    DIM_ASSERT(4, rlen.ndims() == 0 || rlen.dims() == odims);
+    TYPE_ASSERT(rlen.getType() == u32);
+    DIM_ASSERT(0, out.dims() == odims);
+    DIM_ASSERT(0, loc.dims() == odims);
 
     static const ireduce_dim_func<op, T> ireduce_funcs[] = {
         kernel::ireduce_dim<op, T, 1>(), kernel::ireduce_dim<op, T, 2>(),
@@ -58,6 +71,7 @@ void rreduce(Array<T> &out, Array<uint> &loc, const Array<T> &in, const int dim,
 
 template<af_op_t op, typename T>
 T ireduce_all(unsigned *loc, const Array<T> &in) {
+    // Calling point for Array<T> backend
     getQueue().sync();
 
     af::dim4 dims    = in.dims();

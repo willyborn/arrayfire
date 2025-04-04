@@ -22,6 +22,7 @@
 using af::allTrue;
 using af::array;
 using af::constant;
+using af::dim4;
 using af::dtype;
 using af::dtype_traits;
 using af::max;
@@ -420,3 +421,61 @@ TEST(IndexedReduce, MaxCplxPreferSmallerIdxIfEqual) {
 
     ASSERT_EQ(h_max_idx[0], gold_max_idx);
 }
+
+#define FORMAT_TESTS(form)                                                     \
+    TEST(IndexedReduce, form##_issueXXX) {                                     \
+        const array in(dim4(1, 1, 1, 4), {1.f, 0.f, 2.f, 3.f});                \
+        array min_val, min_idx;                                                \
+        min(min_val, min_idx, toTempFormat(form, in));                         \
+        EXPECT_ARRAYS_EQ(min_val, array(dim4(1), {0.f}));                      \
+        EXPECT_ARRAYS_EQ(min_idx, array(dim4(1), {1u}));                       \
+    }                                                                          \
+    TEST(IndexedReduce, form##_all_issueXXX) {                                 \
+        const array in(dim4(1, 1, 1, 4), {1.f, 0.f, 2.f, 3.f});                \
+        float min_val;                                                         \
+        unsigned min_idx;                                                      \
+        min(&min_val, &min_idx, toTempFormat(form, in));                       \
+        EXPECT_EQ(min_val, 0.0f);                                              \
+        EXPECT_EQ(min_idx, 1);                                                 \
+    }                                                                          \
+    TEST(IndexedReduce, form##_af_issueXXX) {                                  \
+        const dim_t size                = 4;                                   \
+        const dim_t h_in_dims[4]        = {1, 1, 1, size};                     \
+        const float h_in[size]          = {1.f, 0.f, 2.f, 3.f};                \
+        const vector<float> gold_val    = {0.f};                               \
+        const vector<unsigned> gold_idx = {1};                                 \
+        af_array af_in = nullptr, af_gold_vals = nullptr,                      \
+                 af_gold_idx = nullptr;                                        \
+        ASSERT_SUCCESS(af_create_array(&af_in, h_in, 4, h_in_dims, f32));      \
+        af_array af_min_val = nullptr, af_min_idx = nullptr, af_in2 = nullptr; \
+        toTempFormat(form, &af_in2, af_in);                                    \
+        ASSERT_SUCCESS(af_imin(&af_min_val, &af_min_idx, af_in2, 3));          \
+        EXPECT_VEC_ARRAY_EQ(gold_val, dim4(1), af_min_val);                    \
+        EXPECT_VEC_ARRAY_EQ(gold_idx, dim4(1), af_min_idx);                    \
+        ASSERT_SUCCESS(af_release_array(af_min_val));                          \
+        af_min_val = nullptr;                                                  \
+        ASSERT_SUCCESS(af_release_array(af_min_idx));                          \
+        af_min_idx = nullptr;                                                  \
+        ASSERT_SUCCESS(af_release_array(af_in2));                              \
+        af_in2 = nullptr;                                                      \
+    }                                                                          \
+    TEST(IndexedReduce, form##_af_all_issueXXX) {                              \
+        const dim_t size         = 4;                                          \
+        const dim_t h_in_dims[4] = {1, 1, 1, size};                            \
+        const float h_in[size]   = {1.f, 0.f, 2.f, 3.f};                       \
+        af_array af_in = nullptr, af_in2 = nullptr;                            \
+        ASSERT_SUCCESS(af_create_array(&af_in, h_in, 4, h_in_dims, f32));      \
+        double min_val, min_val2;                                              \
+        unsigned min_idx;                                                      \
+        toTempFormat(form, &af_in2, af_in);                                    \
+        ASSERT_SUCCESS(af_imin_all(&min_val, &min_val2, &min_idx, af_in2));    \
+        EXPECT_EQ(min_val, 0.);                                                \
+        EXPECT_EQ(min_val2, 0.);                                               \
+        EXPECT_EQ(min_idx, 1);                                                 \
+        ASSERT_SUCCESS(af_release_array(af_in));                               \
+        af_in = nullptr;                                                       \
+        ASSERT_SUCCESS(af_release_array(af_in2));                              \
+        af_in2 = nullptr;                                                      \
+    }
+
+FOREACH_TEMP_FORMAT(FORMAT_TESTS)

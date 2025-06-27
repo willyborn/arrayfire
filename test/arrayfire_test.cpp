@@ -2063,31 +2063,35 @@ af::array toTempFormat(tempFormat form, const af::array &in) {
             break;
         case SUB_FORMAT_dim0: {
             af::dim4 pdims(dims);
-            pdims[0] += 2;
-            af::array parent = af::randu(pdims, in.type());
-            parent(af::seq(1, dims[0]), af::span, af::span, af::span) = in;
-            ret = parent(af::seq(1, dims[0]), af::span, af::span, af::span);
+            pdims[0] *= 2;
+            af::array parent  = af::randu(pdims, in.type());
+            const af::seq dim = af::seq(dims[0]) + static_cast<double>(dims[0]);
+            parent(dim, af::span, af::span, af::span) = in;
+            ret = parent(dim, af::span, af::span, af::span);
         }; break;
         case SUB_FORMAT_dim1: {
             af::dim4 pdims(dims);
-            pdims[1] += 2;
-            af::array parent = af::randu(pdims, in.type());
-            parent(af::span, af::seq(1, dims[1]), af::span, af::span) = in;
-            ret = parent(af::span, af::seq(1, dims[1]), af::span, af::span);
+            pdims[1] *= 2;
+            const af::seq dim = af::seq(dims[1]) + static_cast<double>(dims[1]);
+            af::array parent  = af::randu(pdims, in.type());
+            parent(af::span, dim, af::span, af::span) = in;
+            ret = parent(af::span, dim, af::span, af::span);
         }; break;
         case SUB_FORMAT_dim2: {
             af::dim4 pdims(dims);
-            pdims[2] += 2;
-            af::array parent = af::randu(pdims, in.type());
-            parent(af::span, af::span, af::seq(1, dims[2]), af::span) = in;
-            ret = parent(af::span, af::span, af::seq(1, dims[2]), af::span);
+            pdims[2] *= 2;
+            const af::seq dim = af::seq(dims[2]) + static_cast<double>(dims[2]);
+            af::array parent  = af::randu(pdims, in.type());
+            parent(af::span, af::span, dim, af::span) = in;
+            ret = parent(af::span, af::span, dim, af::span);
         }; break;
         case SUB_FORMAT_dim3: {
             af::dim4 pdims(dims);
-            pdims[3] += 2;
-            af::array parent = af::randu(pdims, in.type());
-            parent(af::span, af::span, af::span, af::seq(1, dims[3])) = in;
-            ret = parent(af::span, af::span, af::span, af::seq(1, dims[3]));
+            pdims[3] *= 2;
+            const af::seq dim = af::seq(dims[3]) + static_cast<double>(dims[3]);
+            af::array parent  = af::randu(pdims, in.type());
+            parent(af::span, af::span, af::span, dim) = in;
+            ret = parent(af::span, af::span, af::span, dim);
         }; break;
         case REORDERED_FORMAT: {
             const dim_t idxs[4] = {0, 3, 1, 2};
@@ -2138,21 +2142,22 @@ void toTempFormat(tempFormat form, af_array *out, const af_array &in) {
             res = nullptr;
         }; break;
         case SUB_FORMAT_dim0: {
-            const dim_t pdims[4] = {dims[0] + 2, dims[1], dims[2], dims[3]};
+            const dim_t pdims[4] = {dims[0] * 2, dims[1], dims[2], dims[3]};
             af_array parent      = nullptr;
-            ASSERT_SUCCESS(af_randu(&parent, std::max(1u, numdims), pdims, ty));
-            const af_seq idxs[4] = {af_make_seq(1, dims[0], 1), af_span,
-                                    af_span, af_span};
-
+            ASSERT_SUCCESS(af_randu(&parent, 4, pdims, ty));
+            const af_seq idxs[4] = {af_make_seq(dims[0], 2. * dims[0] - 1., 1.),
+                                    af_span, af_span, af_span};
             ASSERT_SUCCESS(af_assign_seq(out, parent, numdims, idxs, in));
             ASSERT_SUCCESS(af_index(out, parent, numdims, idxs));
             ASSERT_SUCCESS(af_release_array(parent));
+            parent = nullptr;
         }; break;
         case SUB_FORMAT_dim1: {
-            const dim_t pdims[4] = {dims[0], dims[1] + 2, dims[2], dims[3]};
+            const dim_t pdims[4] = {dims[0], dims[1] * 2, dims[2], dims[3]};
             af_array parent      = nullptr;
-            ASSERT_SUCCESS(af_randu(&parent, std::max(2u, numdims), pdims, ty));
-            const af_seq idxs[4] = {af_span, af_make_seq(1, dims[1], 1),
+            ASSERT_SUCCESS(af_randu(&parent, 4, pdims, ty));
+            const af_seq idxs[4] = {af_span,
+                                    af_make_seq(dims[1], 2. * dims[1] - 1., 1.),
                                     af_span, af_span};
             ASSERT_SUCCESS(af_assign_seq(out, parent, numdims, idxs, in));
             ASSERT_SUCCESS(af_index(out, parent, numdims, idxs));
@@ -2160,22 +2165,24 @@ void toTempFormat(tempFormat form, af_array *out, const af_array &in) {
             parent = nullptr;
         }; break;
         case SUB_FORMAT_dim2: {
-            const dim_t pdims[4] = {dims[0], dims[1], dims[2] + 2, dims[3]};
+            const dim_t pdims[4] = {dims[0], dims[1], dims[2] * 2, dims[3]};
             af_array parent      = nullptr;
-            ASSERT_SUCCESS(af_randu(&parent, std::max(3u, numdims), pdims, ty));
+            ASSERT_SUCCESS(af_randu(&parent, 4, pdims, ty));
             const af_seq idxs[4] = {af_span, af_span,
-                                    af_make_seq(1, dims[2], 1), af_span};
+                                    af_make_seq(dims[2], 2. * dims[2] - 1., 1.),
+                                    af_span};
             ASSERT_SUCCESS(af_assign_seq(out, parent, numdims, idxs, in));
             ASSERT_SUCCESS(af_index(out, parent, numdims, idxs));
             ASSERT_SUCCESS(af_release_array(parent));
             parent = nullptr;
         }; break;
         case SUB_FORMAT_dim3: {
-            const dim_t pdims[4] = {dims[0], dims[1], dims[2], dims[3] + 2};
+            const dim_t pdims[4] = {dims[0], dims[1], dims[2], dims[3] * 2};
             af_array parent      = nullptr;
-            ASSERT_SUCCESS(af_randu(&parent, std::max(4u, numdims), pdims, ty));
-            const af_seq idxs[4] = {af_span, af_span, af_span,
-                                    af_make_seq(1, dims[3], 1)};
+            ASSERT_SUCCESS(af_randu(&parent, 4, pdims, ty));
+            const af_seq idxs[4] = {
+                af_span, af_span, af_span,
+                af_make_seq(dims[3], 2. * dims[3] - 1., 1.)};
             ASSERT_SUCCESS(af_assign_seq(out, parent, numdims, idxs, in));
             ASSERT_SUCCESS(af_index(out, parent, numdims, idxs));
             ASSERT_SUCCESS(af_release_array(parent));
